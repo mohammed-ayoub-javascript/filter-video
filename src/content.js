@@ -28,14 +28,22 @@ function checkForVideo() {
     return;
   }
   
-  // Double check we're on a video page before proceeding
-  if (!isVideoPlayerURL(currentUrl)) {
+  const handling = isVideoPlayerURL(currentUrl);
+  if (!handling) {
     console.log('[Content] Not a video page:', currentUrl);
     return;
   }
 
-  console.log('[Content] Checking for video on:', currentUrl);
-  const video = document.querySelector('video');
+  console.log('[Content] Checking for video on:', currentUrl, 'handling:', handling);
+  
+  let video;
+  if (handling === "amazon") {
+    const videos = document.querySelectorAll('video');
+    console.log('[Content] Found', videos.length, 'videos');
+    video = videos.length > 1 ? videos[1] : null;
+  } else {
+    video = document.querySelector('video');
+  }
   
   if (video) {
     console.log('[Content] Video found:', video);
@@ -52,10 +60,9 @@ function checkForVideo() {
   } else {
     console.log('[Content] Max detection attempts reached');
   }
-  return false;
 }
 
-// Initial check after 1 second
+// Initial check after 2 seconds
 console.log('[Content] Starting initial video check');
 setTimeout(() => {
   videoDetectionAttempts = 0;
