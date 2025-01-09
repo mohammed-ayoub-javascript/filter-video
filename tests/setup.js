@@ -8,6 +8,12 @@ global.chrome = {
       })
     }
   },
+  storage: {
+    local: {
+      get: jest.fn((keys, callback) => callback({})),
+      set: jest.fn()
+    }
+  },
   tabs: {
     onActivated: { addListener: jest.fn() },
     onRemoved: { addListener: jest.fn() },

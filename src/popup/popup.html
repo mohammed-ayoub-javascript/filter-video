@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body {
+      width: 200px;
+      padding: 10px;
+      font-family: system-ui;
+    }
+    #shortcut-key {
+      display: inline-block;
+      padding: 2px 6px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-family: monospace;
+      cursor: pointer;
+      background: #f5f5f5;
+    }
+    #shortcut-key.listening {
+      background: #e0e0e0;
+      border-color: #999;
+    }
+    .hidden {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div id="status">Checking video status...</div>
+  <div id="shortcut-container" class="hidden">
+    Use <span id="shortcut-key">b</span> to toggle blur
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html> 

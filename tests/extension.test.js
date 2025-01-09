@@ -95,7 +95,8 @@ describe('Video Detection Extension', () => {
       // Simulate 'b' keypress
       document.dispatchEvent(new KeyboardEvent('keydown', { key: 'b' }));
       expect(chrome.runtime.sendMessage).toHaveBeenCalledWith({ 
-        type: 'TOGGLE_BLUR' 
+        type: 'TOGGLE_BLUR',
+        type: 'VIDEO_DETECTED'
       });
     });
 
@@ -138,7 +139,7 @@ describe('Video Detection Extension', () => {
       
       // Simulate 'b' keypress - should only trigger once
       document.dispatchEvent(new KeyboardEvent('keydown', { key: 'b' }));
-      expect(chrome.runtime.sendMessage).toHaveBeenCalledTimes(3); // 2 VIDEO_DETECTED + 1 TOGGLE_BLUR
+      expect(chrome.runtime.sendMessage).toHaveBeenCalledTimes(2); // VIDEO_DETECTED + TOGGLE_BLUR
       
       // Restore original Date.now
       global.Date.now = realDateNow;
@@ -189,6 +190,120 @@ describe('Video Detection Extension', () => {
       const videos = document.querySelectorAll('video');
       expect(videos[0].style.filter).toBe('');  // First video unchanged
       expect(videos[1].style.filter).toBe('blur(50px)');  // Second video blurred
+    });
+  });
+
+  describe('Shortcut Handling', () => {
+    test('should use default shortcut initially', (done) => {
+      window.location.href = 'https://www.youtube.com/watch?v=12345';
+      document.body.innerHTML = '<video src="test.mp4"></video>';
+      
+      // Wait for initial setup timeout first
+      setTimeout(() => {
+        checkForVideo();
+        
+        // Then wait for video detection
+        setTimeout(() => {
+          document.dispatchEvent(new KeyboardEvent('keydown', { key: 'b' }));
+          
+          // Simulate background's response
+          chrome.runtime.onMessage.listener({
+            type: 'APPLY_BLUR',
+            shouldBlur: true
+          });
+
+          const video = document.querySelector('video');
+          expect(video.style.filter).toBe('blur(50px)');
+          done();
+        }, 2500);
+      }, 2000);
+    }, 6000);
+    
+    test('should update shortcut key', () => {
+      window.location.href = 'https://www.youtube.com/watch?v=12345';
+      document.body.innerHTML = '<video src="test.mp4"></video>';
+      
+      checkForVideo();
+      
+      // Simulate shortcut update from background
+      chrome.runtime.onMessage.listener({
+        type: 'UPDATE_SHORTCUT',
+        key: 'x'
+      });
+      
+      // Old shortcut shouldn't work
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'b' }));
+      expect(chrome.runtime.sendMessage).not.toHaveBeenCalledWith({ 
+        type: 'TOGGLE_BLUR' 
+      });
+      
+      // New shortcut should work
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'x' }));
+      expect(chrome.runtime.sendMessage).toHaveBeenCalledWith({ 
+        type: 'TOGGLE_BLUR' 
+      });
+    });
+
+    test('should persist shortcut across page loads', () => {
+      // Mock storage to return custom shortcut
+      chrome.storage.local.get.mockImplementationOnce((keys, callback) => {
+        callback({ blurShortcut: 'x' });
+      });
+      
+      window.location.href = 'https://www.youtube.com/watch?v=12345';
+      document.body.innerHTML = '<video src="test.mp4"></video>';
+      
+      // Fresh module load to get storage value
+      jest.resetModules();
+      const { checkForVideo } = require('../src/content.js');
+      checkForVideo();
+      
+      // Should use persisted shortcut
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'x' }));
+      expect(chrome.runtime.sendMessage).toHaveBeenCalledWith({ 
+        type: 'TOGGLE_BLUR' 
+      });
+    });
+  });
+
+  describe('Popup Integration', () => {
+    test('should report video status to popup', (done) => {
+      window.location.href = 'https://www.youtube.com/watch?v=12345';
+      document.body.innerHTML = '<video src="test.mp4"></video>';
+      
+      checkForVideo();
+      
+      // Wait for video detection
+      setTimeout(() => {
+        chrome.runtime.onMessage.listener({
+          type: 'GET_VIDEO_STATUS',
+          tabId: 1
+        });
+        
+        expect(chrome.runtime.sendMessage).toHaveBeenCalledWith({ 
+          type: 'VIDEO_DETECTED' 
+        });
+        done();
+      }, 2500);
+    });
+
+    test('should handle shortcut update from popup', () => {
+      window.location.href = 'https://www.youtube.com/watch?v=12345';
+      document.body.innerHTML = '<video src="test.mp4"></video>';
+      
+      checkForVideo();
+      
+      // Simulate popup shortcut update
+      chrome.runtime.onMessage.listener({
+        type: 'UPDATE_SHORTCUT',
+        key: 'z'
+      });
+      
+      // New shortcut should work
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'z' }));
+      expect(chrome.runtime.sendMessage).toHaveBeenCalledWith({ 
+        type: 'TOGGLE_BLUR' 
+      });
     });
   });
 });

@@ -4,6 +4,9 @@ let lastDetectionTime = 0;
 const DETECTION_COOLDOWN = 1000; // 1 second cooldown between detections
 let blurListenerAttached = false;
 
+// Store keydown handler reference for removal
+let currentKeydownHandler = null;
+
 // Helper function to check if current page is a video player page
 function isVideoPlayerURL(url) {
   let handling = "";
@@ -16,6 +19,18 @@ function isVideoPlayerURL(url) {
     handling = "amazon";
   }
   return handling;
+}
+
+// Helper function to get video element using consistent logic
+function getVideoElement(url=window.location.href) {
+  const handling = isVideoPlayerURL(url);
+  if (!handling) return null;
+  
+  if (handling === "amazon") {
+    const videos = document.querySelectorAll('video');
+    return videos.length > 1 ? videos[1] : null;
+  }
+  return document.querySelector('video');
 }
 
 function checkForVideo() {
@@ -47,10 +62,15 @@ function checkForVideo() {
   
   if (video) {
     console.log('[Content] Video found:', video);
-    chrome.runtime.sendMessage({ type: 'VIDEO_DETECTED' });
-    lastDetectionTime = currentTime;
-    videoDetectionAttempts = MAX_ATTEMPTS;
-    attachBlurToggle(video);
+    try {
+      chrome.runtime.sendMessage({ type: 'VIDEO_DETECTED' });
+      lastDetectionTime = currentTime;
+      videoDetectionAttempts = MAX_ATTEMPTS;
+      attachBlurToggle(video);
+    } catch (e) {
+      console.log('[Content] Extension context invalid:', e);
+      // Extension was reloaded/updated, page will refresh automatically
+    }
     return true;
   }
   
@@ -67,37 +87,65 @@ function toggleBlur(video) {
   chrome.runtime.sendMessage({ type: 'TOGGLE_BLUR' });
 }
 
-function attachBlurToggle(video) {
+function attachBlurToggle(video, key = null) {
   if (blurListenerAttached) {
     console.log('[Blur] Listener already attached');
     return;
   }
 
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'b') {
-      toggleBlur(video);
-    }
-  });
-  
-  blurListenerAttached = true;
-  console.log('[Blur] Attached blur toggle listener');
+  // If no key provided, get it from background
+  if (!key) {
+    chrome.runtime.sendMessage({ type: 'GET_SHORTCUT' }, (response) => {
+      if (response?.key) {
+        attachBlurToggleWithKey(video, response.key);
+      } else {
+        attachBlurToggleWithKey(video, 'b');  // fallback
+      }
+    });
+    return;
+  }
+
+  attachBlurToggleWithKey(video, key);
 }
 
-// Add message listener for blur state changes
+function attachBlurToggleWithKey(video, key) {
+  currentKeydownHandler = (e) => {
+    if (e.key.toLowerCase() === key.toLowerCase()) {
+      toggleBlur(video);
+    }
+  };
+
+  document.addEventListener('keydown', currentKeydownHandler);
+  blurListenerAttached = true;
+  console.log('[Blur] Attached blur toggle listener with key:', key);
+}
+
+// Update message listener
 chrome.runtime.onMessage.addListener((message) => {
   if (message.type === 'APPLY_BLUR') {
-    // Use same video selection logic as detection
-    const handling = isVideoPlayerURL(window.location.href);
-    let video;
-    if (handling === "amazon") {
-      const videos = document.querySelectorAll('video');
-      video = videos.length > 1 ? videos[1] : null;
-    } else {
-      video = document.querySelector('video');
-    }
-
+    const video = getVideoElement();
     if (video) {
       video.style.filter = message.shouldBlur ? 'blur(50px)' : 'none';
+    }
+  }
+
+  if (message.type === 'UPDATE_SHORTCUT') {
+    console.log('[Content] Updating shortcut to:', message.key);
+    
+    // Remove old listener if exists
+    if (currentKeydownHandler) {
+      document.removeEventListener('keydown', currentKeydownHandler);
+      blurListenerAttached = false;
+      console.log('[Content] Removed old shortcut listener');
+    }
+    
+    // Re-attach with new key if we have a video
+    const video = getVideoElement();
+    if (video) {
+      attachBlurToggle(video, message.key);
+      console.log('[Content] Attached new shortcut listener');
+    } else {
+      console.log('[Content] No video found for shortcut update');
     }
   }
 });
