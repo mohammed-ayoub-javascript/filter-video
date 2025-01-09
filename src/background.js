@@ -1,4 +1,4 @@
-// Store tabs with detected videos: tabId -> boolean
+// Store tabs with detected videos: tabId -> { detected: boolean, blurred: boolean }
 let detectedVideoTabs = new Map();
 
 // Helper function to check if URL is a video player page
@@ -12,7 +12,6 @@ function isVideoPlayerURL(url) {
   else if (url.includes('primevideo.com') && url.includes('detail')) {
     handling = "amazon";
   }
-  console.log('[Content] Handling:', handling);
   return handling;
 }
 
@@ -47,10 +46,34 @@ chrome.webNavigation.onCompleted.addListener((details) => {
 });
 
 // Listen for video detection from content script
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  if (message.type === 'VIDEO_DETECTED' && !detectedVideoTabs.has(sender.tab.id)) {
-    console.log('[Detection] First video detected in tab:', sender.tab.id);
-    detectedVideoTabs.set(sender.tab.id, true);
+chrome.runtime.onMessage.addListener((message, sender) => {
+  const tabId = sender.tab.id;
+
+  switch(message.type) {
+    case 'VIDEO_DETECTED':
+      detectedVideoTabs.set(tabId, { 
+        detected: true, 
+        blurred: false  // Start unblurred
+      });
+      // // Send back initial state to content script
+      // chrome.tabs.sendMessage(tabId, { 
+      //   type: 'APPLY_BLUR',
+      //   shouldBlur: true
+      // });
+      break;
+      
+    case 'TOGGLE_BLUR':
+      if (detectedVideoTabs.has(tabId)) {
+        const state = detectedVideoTabs.get(tabId);
+        state.blurred = !state.blurred;
+        detectedVideoTabs.set(tabId, state);
+        // Inform content script of new state
+        chrome.tabs.sendMessage(tabId, {
+          type: 'APPLY_BLUR',
+          shouldBlur: state.blurred
+        });
+      }
+      break;
   }
 });
 

@@ -1,12 +1,18 @@
 // Mock chrome API
 global.chrome = {
   runtime: {
-    sendMessage: jest.fn()
+    sendMessage: jest.fn(),
+    onMessage: {
+      addListener: jest.fn((listener) => {
+        chrome.runtime.onMessage.listener = listener;  // Store the listener
+      })
+    }
   },
   tabs: {
     onActivated: { addListener: jest.fn() },
     onRemoved: { addListener: jest.fn() },
-    get: jest.fn()
+    get: jest.fn(),
+    sendMessage: jest.fn()
   },
   webNavigation: {
     onHistoryStateUpdated: { addListener: jest.fn() },

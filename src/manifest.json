@@ -5,9 +5,12 @@
   "permissions": [
     "tabs",
     "webNavigation",
-    "storage",
-    "activeTab",
-    "scripting"
+    "storage"
+  ],
+  "host_permissions": [
+    "*://*.youtube.com/*",
+    "*://*.netflix.com/*",
+    "*://*.primevideo.com/*"
   ],
   "background": {
     "service_worker": "background.js"

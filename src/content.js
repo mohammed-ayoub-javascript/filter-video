@@ -1,7 +1,8 @@
 let videoDetectionAttempts = 0;
-const MAX_ATTEMPTS = 2;
+const MAX_ATTEMPTS = 3;
 let lastDetectionTime = 0;
 const DETECTION_COOLDOWN = 1000; // 1 second cooldown between detections
+let blurListenerAttached = false;
 
 // Helper function to check if current page is a video player page
 function isVideoPlayerURL(url) {
@@ -14,7 +15,6 @@ function isVideoPlayerURL(url) {
   else if (url.includes('primevideo.com') && url.includes('detail')) {
     handling = "amazon";
   }
-  console.log('[Content] Handling:', handling);
   return handling;
 }
 
@@ -50,6 +50,7 @@ function checkForVideo() {
     chrome.runtime.sendMessage({ type: 'VIDEO_DETECTED' });
     lastDetectionTime = currentTime;
     videoDetectionAttempts = MAX_ATTEMPTS;
+    attachBlurToggle(video);
     return true;
   }
   
@@ -61,6 +62,45 @@ function checkForVideo() {
     console.log('[Content] Max detection attempts reached');
   }
 }
+
+function toggleBlur(video) {
+  chrome.runtime.sendMessage({ type: 'TOGGLE_BLUR' });
+}
+
+function attachBlurToggle(video) {
+  if (blurListenerAttached) {
+    console.log('[Blur] Listener already attached');
+    return;
+  }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'b') {
+      toggleBlur(video);
+    }
+  });
+  
+  blurListenerAttached = true;
+  console.log('[Blur] Attached blur toggle listener');
+}
+
+// Add message listener for blur state changes
+chrome.runtime.onMessage.addListener((message) => {
+  if (message.type === 'APPLY_BLUR') {
+    // Use same video selection logic as detection
+    const handling = isVideoPlayerURL(window.location.href);
+    let video;
+    if (handling === "amazon") {
+      const videos = document.querySelectorAll('video');
+      video = videos.length > 1 ? videos[1] : null;
+    } else {
+      video = document.querySelector('video');
+    }
+
+    if (video) {
+      video.style.filter = message.shouldBlur ? 'blur(50px)' : 'none';
+    }
+  }
+});
 
 // Initial check after 2 seconds
 console.log('[Content] Starting initial video check');
