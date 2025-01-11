@@ -135,9 +135,9 @@ chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
     }
   });
 
-  // Load initial extension enabled state
+  // Load initial extension enabled state and show/hide UI accordingly
   chrome.runtime.sendMessage({ type: 'GET_IS_ENABLED' }, (response) => {
-    enableSwitch.checked = response.isEnabled ?? false;
+    enableSwitch.checked = response.isEnabled;
     if (response.isEnabled) {
       status.classList.remove('hidden');
     }

@@ -3,9 +3,19 @@ const MAX_ATTEMPTS = 3;
 let lastDetectionTime = 0;
 const DETECTION_COOLDOWN = 1000; // 1 second cooldown between detections
 let blurListenerAttached = false;
+let isExtensionEnabled = true; // Default to true
+let currentKeydownHandler = null; // Store keydown handler reference for removal
 
-// Store keydown handler reference for removal
-let currentKeydownHandler = null;
+// Get initial extension state
+chrome.runtime.sendMessage({ type: 'GET_IS_ENABLED' }, (response) => {
+  isExtensionEnabled = response?.isEnabled ?? true;
+  console.log('[Content] Extension state:', isExtensionEnabled);
+  if (isExtensionEnabled) {
+    // Start detection if enabled initially
+    videoDetectionAttempts = 0;
+    setTimeout(checkForVideo, 2000);
+  }
+});
 
 // Helper function to check if current page is a video player page
 function isVideoPlayerURL(url) {
@@ -23,6 +33,7 @@ function isVideoPlayerURL(url) {
 
 // Helper function to get video element using consistent logic
 function getVideoElement(url=window.location.href) {
+  if (!isExtensionEnabled) return null;
   const handling = isVideoPlayerURL(url);
   if (!handling) return null;
   
@@ -46,6 +57,7 @@ function safeRuntime(callback) {
 }
 
 function checkForVideo() {
+  if (!isExtensionEnabled) return;
   const currentUrl = window.location.href;
   const currentTime = Date.now();
   
@@ -97,40 +109,54 @@ function toggleBlur(video) {
 }
 
 function attachBlurToggle(video, key = null) {
-  if (blurListenerAttached) {
-    console.log('[Blur] Listener already attached');
-    return;
-  }
+  if (blurListenerAttached) return;
+  
+  const setupListener = (shortcutKey) => {
+    currentKeydownHandler = (e) => {
+      if (e.key.toLowerCase() === shortcutKey.toLowerCase() && isExtensionEnabled) {
+        chrome.runtime.sendMessage({ type: 'TOGGLE_BLUR' });
+      }
+    };
+    document.addEventListener('keydown', currentKeydownHandler);
+    blurListenerAttached = true;
+  };
 
   // If no key provided, get it from background
   if (!key) {
     chrome.runtime.sendMessage({ type: 'GET_SHORTCUT' }, (response) => {
-      if (response?.key) {
-        attachBlurToggleWithKey(video, response.key);
-      } else {
-        attachBlurToggleWithKey(video, 'b');  // fallback
-      }
+      setupListener(response?.key || 'b');
     });
-    return;
+  } else {
+    setupListener(key);
   }
-
-  attachBlurToggleWithKey(video, key);
-}
-
-function attachBlurToggleWithKey(video, key) {
-  currentKeydownHandler = (e) => {
-    if (e.key.toLowerCase() === key.toLowerCase()) {
-      toggleBlur(video);
-    }
-  };
-
-  document.addEventListener('keydown', currentKeydownHandler);
-  blurListenerAttached = true;
-  console.log('[Blur] Attached blur toggle listener with key:', key);
 }
 
 // Update message listener
 chrome.runtime.onMessage.addListener((message) => {
+  // Listen for extension state changes
+  if (message.type === 'TOGGLE_EXTENSION') {
+    console.log('[Content] Extension state changed:', message.enabled);
+    isExtensionEnabled = message.enabled;
+    
+    if (!isExtensionEnabled) {
+      // Clean up when disabled
+      if (currentKeydownHandler) {
+        document.removeEventListener('keydown', currentKeydownHandler);
+        blurListenerAttached = false;
+      }
+    } else {
+      // Start fresh detection when enabled
+      console.log('[Content] Extension enabled, starting video detection');
+      videoDetectionAttempts = 0;
+      const video = getVideoElement();
+      if (video) {
+        // If video exists, attach listener immediately
+        attachBlurToggle(video);
+      }
+      setTimeout(checkForVideo, 2000); // Start detection
+    }
+  }
+
   if (message.type === 'APPLY_BLUR') {
     console.log('[Content] Applying blur:', message);
     const video = getVideoElement();
@@ -162,13 +188,6 @@ chrome.runtime.onMessage.addListener((message) => {
     }
   }
 });
-
-// Initial check after 2 seconds
-console.log('[Content] Starting initial video check');
-setTimeout(() => {
-  videoDetectionAttempts = 0;
-  checkForVideo();
-}, 2000);
 
 // Watch for URL changes
 let lastUrl = location.href;

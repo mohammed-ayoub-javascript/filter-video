@@ -131,6 +131,15 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       }
       // Clear the detection map after sending unblur messages
       detectedVideoTabs.clear();
+    } else {
+      console.log('[Background] Extension enabled, starting video detection');
+      // Start video detection in each tab
+      chrome.tabs.query({}, (tabs) => {
+        tabs.forEach(tab => safeSendMessage(tab.id, {
+          type: 'TOGGLE_EXTENSION',
+          enabled: true
+        }));
+      });
     }
     updateAlarm(isExtensionEnabled);
     sendResponse({ success: true, isEnabled: isExtensionEnabled });
