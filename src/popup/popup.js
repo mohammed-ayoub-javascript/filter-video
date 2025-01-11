@@ -137,12 +137,22 @@ chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
 
   // Load initial extension enabled state
   chrome.runtime.sendMessage({ type: 'GET_IS_ENABLED' }, (response) => {
-    document.getElementById('enableSwitch').checked = response.isEnabled ?? false;
+    enableSwitch.checked = response.isEnabled ?? false;
+    if (response.isEnabled) {
+      status.classList.remove('hidden');
+    }
   });
   
   // Handle enable/disable switch
   enableSwitch.addEventListener('change', (e) => {
     console.log('[Popup] Switch toggled:', e.target.checked);
+    if (!e.target.checked) {
+      status.classList.add('hidden');
+      shortcutContainer.classList.add('hidden');
+      intensityContainer.classList.add('hidden');
+    } else {
+      status.classList.remove('hidden');
+    }
     chrome.runtime.sendMessage({ 
       type: 'TOGGLE_EXTENSION',
       enabled: e.target.checked 
