@@ -33,6 +33,18 @@ function getVideoElement(url=window.location.href) {
   return document.querySelector('video');
 }
 
+function safeRuntime(callback) {
+  try {
+    callback();
+  } catch (e) {
+    if (e.message.includes('Extension context invalidated')) {
+      console.log('[Content] Extension context invalid - this is normal during updates');
+    } else {
+      console.error('[Content] Unexpected error:', e);
+    }
+  }
+}
+
 function checkForVideo() {
   const currentUrl = window.location.href;
   const currentTime = Date.now();
@@ -43,7 +55,7 @@ function checkForVideo() {
     return;
   }
   
-  const handling = isVideoPlayerURL(currentUrl);
+  let handling = isVideoPlayerURL(currentUrl);
   if (!handling) {
     console.log('[Content] Not a video page:', currentUrl);
     return;
@@ -62,15 +74,12 @@ function checkForVideo() {
   
   if (video) {
     console.log('[Content] Video found:', video);
-    try {
+    safeRuntime(() => {
       chrome.runtime.sendMessage({ type: 'VIDEO_DETECTED' });
       lastDetectionTime = currentTime;
       videoDetectionAttempts = MAX_ATTEMPTS;
       attachBlurToggle(video);
-    } catch (e) {
-      console.log('[Content] Extension context invalid:', e);
-      // Extension was reloaded/updated, page will refresh automatically
-    }
+    });
     return true;
   }
   
@@ -125,7 +134,7 @@ chrome.runtime.onMessage.addListener((message) => {
   if (message.type === 'APPLY_BLUR') {
     const video = getVideoElement();
     if (video) {
-      video.style.filter = message.shouldBlur ? 'blur(50px)' : 'none';
+      video.style.filter = message.shouldBlur ? `blur(${message.intensity || 50}px)` : 'none';
     }
   }
 

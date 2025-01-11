@@ -23,12 +23,28 @@
     .hidden {
       display: none;
     }
+    #intensity-container {
+      margin-top: 10px;
+    }
+    #blur-intensity {
+      width: 100%;
+      margin: 5px 0;
+    }
+    #intensity-value {
+      font-size: 0.9em;
+      color: #666;
+    }
   </style>
 </head>
 <body>
   <div id="status">Checking video status...</div>
   <div id="shortcut-container" class="hidden">
     Use <span id="shortcut-key">b</span> to toggle blur
+  </div>
+  <div id="intensity-container" class="hidden">
+    <label for="blur-intensity">Blur Intensity:</label>
+    <input type="range" id="blur-intensity" min="1" max="100" value="50">
+    <span id="intensity-value">50px</span>
   </div>
   <script src="popup.js"></script>
 </body>

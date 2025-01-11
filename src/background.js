@@ -3,12 +3,17 @@ let detectedVideoTabs = new Map();
 
 // Add at the top with other state
 let blurShortcut = 'b';  // Default shortcut key
+let blurIntensity = 50;  // Default blur intensity
 
-// Load saved shortcut on startup
-chrome.storage.local.get(['blurShortcut'], (result) => {
+// Load saved shortcut and intensity on startup
+chrome.storage.local.get(['blurShortcut', 'blurIntensity'], (result) => {
   if (result.blurShortcut) {
     blurShortcut = result.blurShortcut;
     console.log('[Background] Loaded saved shortcut:', blurShortcut);
+  }
+  if (result.blurIntensity) {
+    blurIntensity = result.blurIntensity;
+    console.log('[Background] Loaded saved intensity:', blurIntensity);
   }
 });
 
@@ -67,6 +72,17 @@ chrome.webNavigation.onCompleted.addListener((details) => {
   }
 });
 
+// Helper function for safe message sending
+function safeSendMessage(tabId, message) {
+  chrome.tabs.sendMessage(tabId, message).catch(error => {
+    if (error.message.includes('receiving end does not exist')) {
+      console.log('[Background] Tab not ready or closed:', tabId);
+    } else {
+      console.error('[Background] Message send error:', error);
+    }
+  });
+}
+
 // Listen for messages
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   console.log('[Background] Received message:', message);
@@ -90,7 +106,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         detected: true, 
         blurred: false
       });
-      // Broadcast to all popups
+      // Broadcast to popup
       chrome.runtime.sendMessage({ 
         type: 'VIDEO_DETECTED',
         tabId: tabId
@@ -104,9 +120,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         state.blurred = !state.blurred;
         detectedVideoTabs.set(tabId, state);
         // Inform content script of new state
-        chrome.tabs.sendMessage(tabId, {
+        safeSendMessage(tabId, {
           type: 'APPLY_BLUR',
-          shouldBlur: state.blurred
+          shouldBlur: state.blurred,
+          intensity: blurIntensity
         });
       }
       break;
@@ -121,11 +138,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         console.log('[Background] Broadcasting shortcut update to video tabs');
         tabs.forEach(tab => {
           if (detectedVideoTabs.has(tab.id)) {
-            chrome.tabs.sendMessage(tab.id, {
+            safeSendMessage(tab.id, {
               type: 'UPDATE_SHORTCUT',
               key: blurShortcut
-            }).catch(() => {
-              console.log('[Background] Failed to update shortcut for tab:', tab.id);
             });
           }
         });
@@ -135,6 +150,30 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     case 'GET_SHORTCUT':
       sendResponse({ key: blurShortcut });
       return true;  // Keep message channel open
+
+    case 'GET_BLUR_INTENSITY':
+      sendResponse({ intensity: blurIntensity });
+      return true;  // Keep message channel open
+
+    case 'UPDATE_BLUR_INTENSITY':
+      console.log('[Background] Updating blur intensity to:', message.intensity);
+      blurIntensity = message.intensity;
+      // Save to storage
+      chrome.storage.local.set({ blurIntensity: message.intensity });
+      // Update any active blurred videos
+      chrome.tabs.query({}, (tabs) => {
+        tabs.forEach(tab => {
+          const state = detectedVideoTabs.get(tab.id);
+          if (state?.blurred) {
+            safeSendMessage(tab.id, {
+              type: 'APPLY_BLUR',
+              shouldBlur: true,
+              intensity: blurIntensity
+            });
+          }
+        });
+      });
+      break;
   }
 });
 
