@@ -6,6 +6,7 @@ chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
   const intensityContainer = document.getElementById('intensity-container');
   const intensitySlider = document.getElementById('blur-intensity');
   const intensityValue = document.getElementById('intensity-value');
+  const enableSwitch = document.getElementById('enableSwitch');
   
   // Add intensity slider handler
   intensitySlider.addEventListener('input', () => {
@@ -132,5 +133,25 @@ chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
       intensitySlider.value = response.intensity;
       intensityValue.textContent = `${response.intensity}px`;
     }
+  });
+
+  // Load initial extension enabled state
+  chrome.runtime.sendMessage({ type: 'GET_IS_ENABLED' }, (response) => {
+    document.getElementById('enableSwitch').checked = response.isEnabled ?? false;
+  });
+  
+  // Handle enable/disable switch
+  enableSwitch.addEventListener('change', (e) => {
+    console.log('[Popup] Switch toggled:', e.target.checked);
+    chrome.runtime.sendMessage({ 
+      type: 'TOGGLE_EXTENSION',
+      enabled: e.target.checked 
+    }, (response) => {
+      if (chrome.runtime.lastError) {
+        console.error('[Popup] Toggle error:', chrome.runtime.lastError);
+        return;
+      }
+      console.log('[Popup] Extension toggled response:', response);
+    });
   });
 }); 

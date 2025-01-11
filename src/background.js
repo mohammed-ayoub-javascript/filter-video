@@ -4,9 +4,19 @@ let detectedVideoTabs = new Map();
 // Add at the top with other state
 let blurShortcut = 'b';  // Default shortcut key
 let blurIntensity = 50;  // Default blur intensity
+let isExtensionEnabled = true; // Default to enabled
 
-// Load saved shortcut and intensity on startup
-chrome.storage.local.get(['blurShortcut', 'blurIntensity'], (result) => {
+// Function to manage alarm
+function updateAlarm(enabled) {
+  if (enabled) {
+    chrome.alarms.create('keepAlive', { periodInMinutes: 0.1 }); // Every 12 seconds
+  } else {
+    chrome.alarms.clear('keepAlive');
+  }
+}
+
+// Load saved state and set up initial alarm
+chrome.storage.local.get(['blurShortcut', 'blurIntensity', 'isEnabled'], (result) => {
   if (result.blurShortcut) {
     blurShortcut = result.blurShortcut;
     console.log('[Background] Loaded saved shortcut:', blurShortcut);
@@ -15,6 +25,9 @@ chrome.storage.local.get(['blurShortcut', 'blurIntensity'], (result) => {
     blurIntensity = result.blurIntensity;
     console.log('[Background] Loaded saved intensity:', blurIntensity);
   }
+  isExtensionEnabled = result.isEnabled ?? true;
+  console.log('[Background] Loaded extension state:', isExtensionEnabled);
+  updateAlarm(isExtensionEnabled); // Set initial alarm state
 });
 
 // Helper function to check if URL is a video player page
@@ -96,15 +109,48 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true;  // Keep message channel open
   }
 
+  // Special handling for TOGGLE_EXTENSION as it comes from popup
+  if (message.type === 'TOGGLE_EXTENSION') {
+    isExtensionEnabled = message.enabled;
+    chrome.storage.local.set({ isEnabled: isExtensionEnabled });
+    console.log('[Background] Extension toggled to:', isExtensionEnabled);
+    
+    if (!isExtensionEnabled) {
+      // Unblur all detected videos when disabled
+      for (const [tabId, state] of detectedVideoTabs.entries()) {
+        console.log('[Background] Checking tab:', tabId, 'State:', state);
+        // Only unblur if the video is currently blurred
+        if (state.blurred) {
+          console.log('[Background] Unblurring tab:', tabId);
+          safeSendMessage(tabId, {
+            type: 'APPLY_BLUR',
+            shouldBlur: false,
+            intensity: blurIntensity
+          });
+        }
+      }
+      // Clear the detection map after sending unblur messages
+      detectedVideoTabs.clear();
+    }
+    updateAlarm(isExtensionEnabled);
+    sendResponse({ success: true, isEnabled: isExtensionEnabled });
+    return true;
+  }
+
   const tabId = sender.tab?.id;
   console.log('[Background] Processing message for tab:', tabId);
   
   switch(message.type) {
     case 'VIDEO_DETECTED':
+      if (!isExtensionEnabled) {
+        console.log('[Background] Extension disabled, ignoring video detection');
+        return;
+      }
       console.log('[Background] Video detected in tab:', tabId);
+      // Initialize with both detected and blur state
       detectedVideoTabs.set(tabId, { 
         detected: true, 
-        blurred: false
+        blurred: false  // Initialize blur state
       });
       // Broadcast to popup
       chrome.runtime.sendMessage({ 
@@ -114,12 +160,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       break;
       
     case 'TOGGLE_BLUR':
-      if (detectedVideoTabs.has(tabId)) {
-        // Toggle blur state
-        const state = detectedVideoTabs.get(tabId);
-        state.blurred = !state.blurred;
+      const state = detectedVideoTabs.get(tabId);
+      if (state) {
+        state.blurred = !state.blurred;  // Toggle blur state
         detectedVideoTabs.set(tabId, state);
-        // Inform content script of new state
+        console.log('[Background] Toggled blur state for tab:', tabId, 'New state:', state);
         safeSendMessage(tabId, {
           type: 'APPLY_BLUR',
           shouldBlur: state.blurred,
@@ -149,6 +194,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
     case 'GET_SHORTCUT':
       sendResponse({ key: blurShortcut });
+      return true;  // Keep message channel open
+
+    case 'GET_IS_ENABLED':
+      sendResponse({ isEnabled: isExtensionEnabled });
       return true;  // Keep message channel open
 
     case 'GET_BLUR_INTENSITY':
@@ -182,6 +231,17 @@ chrome.tabs.onRemoved.addListener((tabId) => {
   if (detectedVideoTabs.has(tabId)) {
     console.log('[Tab Closed] Removing detected video for tab:', tabId);
     detectedVideoTabs.delete(tabId);
+  }
+});
+
+chrome.alarms.onAlarm.addListener((alarm) => {
+  if (alarm.name === 'keepAlive') {
+    // Check if extension is enabled
+    chrome.storage.local.get(['isEnabled'], (result) => {
+      if (result.isEnabled) {
+        console.log('[Background] Extension active');
+      }
+    });
   }
 });
 

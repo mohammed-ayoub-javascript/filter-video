@@ -132,9 +132,13 @@ function attachBlurToggleWithKey(video, key) {
 // Update message listener
 chrome.runtime.onMessage.addListener((message) => {
   if (message.type === 'APPLY_BLUR') {
+    console.log('[Content] Applying blur:', message);
     const video = getVideoElement();
     if (video) {
       video.style.filter = message.shouldBlur ? `blur(${message.intensity || 50}px)` : 'none';
+      console.log('[Content] Video filter set to:', video.style.filter);
+    } else {
+      console.log('[Content] No video found to unblur');
     }
   }
 
