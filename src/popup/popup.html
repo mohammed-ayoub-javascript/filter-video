@@ -95,7 +95,7 @@
       font-size: 14px;
     }
 
-    #blur-intensity {
+    #filter-intensity {
       width: 100%;
       margin: 8px 0;
       -webkit-appearance: none;
@@ -106,7 +106,7 @@
       outline: none;
     }
 
-    #blur-intensity::-webkit-slider-thumb {
+    #filter-intensity::-webkit-slider-thumb {
       -webkit-appearance: none;
       width: 16px;
       height: 16px;
@@ -116,7 +116,7 @@
       transition: all 0.2s ease;
     }
 
-    #blur-intensity::-webkit-slider-thumb:hover {
+    #filter-intensity::-webkit-slider-thumb:hover {
       transform: scale(1.1);
     }
 
@@ -264,6 +264,86 @@
       width: 20px;
       height: 20px;
     }
+
+    .custom-select {
+      position: relative;
+      display: inline-block;
+    }
+
+    .filter-select {
+      display: inline-block;
+      padding: 2px 24px 2px 8px;
+      border: 1px solid var(--primary-color);
+      border-radius: 4px;
+      font-family: inherit;
+      font-size: inherit;
+      font-weight: inherit;
+      cursor: pointer;
+      background: var(--secondary-bg);
+      color: var(--primary-color);
+      transition: all 0.2s ease;
+      background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%232196F3'%3e%3cpath d='M7 10l5 5 5-5z'/%3e%3c/svg%3e");
+      background-repeat: no-repeat;
+      background-position: right 4px center;
+      background-size: 16px;
+      vertical-align: middle;
+      line-height: 1.4;
+      border: 1px solid var(--primary-color);
+      appearance: none;
+      -webkit-appearance: none;
+      outline: none;
+      width: 90px;
+      text-align: left;
+    }
+
+    .filter-select:hover {
+      background-color: var(--hover-color);
+    }
+
+    .select-items {
+      position: absolute;
+      top: calc(100% + 2px);
+      left: 0;
+      width: 85px;
+      z-index: 99;
+      background: var(--bg-color);
+      border: 1px solid var(--primary-color);
+      border-radius: 4px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+      overflow: hidden;
+      padding: 2px;
+    }
+
+    .select-item {
+      padding: 4px 8px;
+      cursor: pointer;
+      font-family: inherit;
+      font-weight: inherit;
+      transition: all 0.2s ease;
+      color: var(--text-color);
+      white-space: nowrap;
+      font-size: 13px;
+      border-radius: 2px;
+      background: var(--bg-color);
+    }
+
+    .select-item:hover {
+      background: var(--primary-color);
+      color: var(--text-color);
+    }
+
+    .select-item.selected {
+      background: var(--primary-color);
+      color: var(--text-color);
+    }
+
+    #shortcut-container {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      flex-wrap: wrap;
+      margin-bottom: 8px;
+    }
   </style>
 </head>
 <body>
@@ -282,12 +362,19 @@
   <div id="status" class="hidden">Checking video status...</div>
   
   <div id="shortcut-container" class="hidden">
-    Press <span id="shortcut-key">,</span> to toggle blur
+    Press <span id="shortcut-key">,</span> to toggle 
+    <div class="custom-select">
+      <button id="filter-type" class="filter-select">blur</button>
+      <div class="select-items hidden">
+        <div class="select-item" data-value="blur">blur</div>
+        <div class="select-item" data-value="opacity">opacity</div>
+      </div>
+    </div>
   </div>
   
   <div id="intensity-container" class="hidden">
-    <label for="blur-intensity">Blur Intensity</label>
-    <input type="range" id="blur-intensity" min="1" max="100" value="50">
+    <label for="filter-intensity">Intensity</label>
+    <input type="range" id="filter-intensity" min="1" max="100" value="50">
     <span id="intensity-value">50%</span>
   </div>
 

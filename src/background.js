@@ -8,19 +8,20 @@
  */
 
 // ===== State Management =====
-// Store tabs with detected videos: tabId -> { detected: boolean, blurred: boolean }
+// Store tabs with detected videos: tabId -> { detected: boolean, filtered: boolean }
 let detectedVideoTabs = new Map();
 
 // Extension settings with defaults
-let blurShortcut = ',';  // Default shortcut key
-let blurIntensity = 50;  // Default blur intensity
+let filterShortcut = ',';  // Default shortcut key
+let filterIntensity = 50;  // Default filter intensity
 let isExtensionEnabled = true; // Default to enabled
+let filterType = 'blur'; // Default filter type
 
 // ===== Initialization =====
 // Function to manage alarm
 function updateAlarm(enabled) {
   if (enabled) {
-    chrome.alarms.create('keepAlive', { periodInMinutes: 0.1 }); // Every 12 seconds
+    chrome.alarms.create('keepAlive', { periodInMinutes: 0.05 }); // Every 3 seconds for better reliability across different systems to prevent the extension from being killed
   } else {
     chrome.alarms.clear('keepAlive');
   }
@@ -36,14 +37,18 @@ function updateIcon(enabled) {
 }
 
 // Load saved state and set up initial alarm
-chrome.storage.local.get(['blurShortcut', 'blurIntensity', 'isEnabled'], (result) => {
-  if (result.blurShortcut) {
-    blurShortcut = result.blurShortcut;
-    console.log('[Background] Loaded saved shortcut:', blurShortcut);
+chrome.storage.local.get(['filterShortcut', 'filterIntensity', 'isEnabled', 'filterType'], (result) => {
+  if (result.filterShortcut) {
+    filterShortcut = result.filterShortcut;
+    console.log('[Background] Loaded saved shortcut:', filterShortcut);
   }
-  if (result.blurIntensity) {
-    blurIntensity = result.blurIntensity;
-    console.log('[Background] Loaded saved intensity:', blurIntensity);
+  if (result.filterIntensity) {
+    filterIntensity = result.filterIntensity;
+    console.log('[Background] Loaded saved intensity:', filterIntensity);
+  }
+  if (result.filterType) {
+    filterType = result.filterType;
+    console.log('[Background] Loaded saved filter type:', filterType);
   }
   isExtensionEnabled = result.isEnabled ?? true;
   console.log('[Background] Loaded extension state:', isExtensionEnabled);
@@ -163,12 +168,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       for (const [tabId, state] of detectedVideoTabs.entries()) {
         console.log('[Background] Checking tab:', tabId, 'State:', state);
         // Only unblur if the video is currently blurred
-        if (state.blurred) {
-          console.log('[Background] Unblurring tab:', tabId);
+        if (state.filtered) {
+          console.log('[Background] Removing filter from tab:', tabId);
           safeSendMessage(tabId, {
-            type: 'APPLY_BLUR',
-            shouldBlur: false,
-            intensity: blurIntensity
+            type: 'APPLY_FILTER',
+            shouldFilter: false,
+            intensity: filterIntensity,
+            filterType: filterType
           });
         }
       }
@@ -203,7 +209,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       // Initialize with both detected and blur state
       detectedVideoTabs.set(tabId, { 
         detected: true, 
-        blurred: false  // Initialize blur state
+        filtered: false  // Initialize filter state
       });
       // Broadcast to popup
       safeBroadcast({ 
@@ -212,25 +218,26 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       });
       break;
       
-    case 'TOGGLE_BLUR':
+    case 'TOGGLE_FILTER':
       const state = detectedVideoTabs.get(tabId);
       if (state) {
-        state.blurred = !state.blurred;  // Toggle blur state
+        state.filtered = !state.filtered;  // Toggle filter state
         detectedVideoTabs.set(tabId, state);
-        console.log('[Background] Toggled blur state for tab:', tabId, 'New state:', state);
+        console.log('[Background] Toggled filter state for tab:', tabId, 'New state:', state);
         safeSendMessage(tabId, {
-          type: 'APPLY_BLUR',
-          shouldBlur: state.blurred,
-          intensity: blurIntensity
+          type: 'APPLY_FILTER',
+          shouldFilter: state.filtered,
+          intensity: filterIntensity,
+          filterType: filterType
         });
       }
       break;
 
     case 'UPDATE_SHORTCUT':
       console.log('[Background] Updating shortcut key to:', message.key);
-      blurShortcut = message.key;
+      filterShortcut = message.key;
       // Save to storage
-      chrome.storage.local.set({ blurShortcut: message.key });
+      chrome.storage.local.set({ filterShortcut: message.key });
       // Notify only tabs with videos
       chrome.tabs.query({}, (tabs) => {
         console.log('[Background] Broadcasting shortcut update to video tabs');
@@ -238,7 +245,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           if (detectedVideoTabs.has(tab.id)) {
             safeSendMessage(tab.id, {
               type: 'UPDATE_SHORTCUT',
-              key: blurShortcut
+              key: filterShortcut
             });
           }
         });
@@ -246,31 +253,57 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       break;
 
     case 'GET_SHORTCUT':
-      sendResponse({ key: blurShortcut });
+      sendResponse({ key: filterShortcut });
       return true;  // Keep message channel open
 
     case 'GET_IS_ENABLED':
       sendResponse({ isEnabled: isExtensionEnabled });
       return true;  // Keep message channel open
 
-    case 'GET_BLUR_INTENSITY':
-      sendResponse({ intensity: blurIntensity });
+    case 'GET_FILTER_INTENSITY':
+      sendResponse({ intensity: filterIntensity });
       return true;  // Keep message channel open
 
-    case 'UPDATE_BLUR_INTENSITY':
-      console.log('[Background] Updating blur intensity to:', message.intensity);
-      blurIntensity = message.intensity;
+    case 'UPDATE_FILTER_INTENSITY':
+      console.log('[Background] Updating filter intensity to:', message.intensity);
+      filterIntensity = message.intensity;
       // Save to storage
-      chrome.storage.local.set({ blurIntensity: message.intensity });
-      // Update any active blurred videos
+      chrome.storage.local.set({ filterIntensity: message.intensity });
+      // Update any active filtered videos
       chrome.tabs.query({}, (tabs) => {
         tabs.forEach(tab => {
           const state = detectedVideoTabs.get(tab.id);
-          if (state?.blurred) {
+          if (state?.filtered) {
             safeSendMessage(tab.id, {
-              type: 'APPLY_BLUR',
-              shouldBlur: true,
-              intensity: blurIntensity
+              type: 'APPLY_FILTER',
+              shouldFilter: true,
+              intensity: filterIntensity,
+              filterType: filterType
+            });
+          }
+        });
+      });
+      break;
+
+    case 'GET_FILTER_TYPE':
+      sendResponse({ filterType });
+      return true;  // Keep message channel open
+
+    case 'UPDATE_FILTER_TYPE':
+      console.log('[Background] Updating filter type to:', message.filterType);
+      filterType = message.filterType;
+      // Save to storage
+      chrome.storage.local.set({ filterType: message.filterType });
+      // Update any active filtered videos
+      chrome.tabs.query({}, (tabs) => {
+        tabs.forEach(tab => {
+          const state = detectedVideoTabs.get(tab.id);
+          if (state?.filtered) {
+            safeSendMessage(tab.id, {
+              type: 'APPLY_FILTER',
+              shouldFilter: true,
+              intensity: filterIntensity,
+              filterType: filterType
             });
           }
         });

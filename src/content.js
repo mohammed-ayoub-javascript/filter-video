@@ -12,7 +12,7 @@ let videoDetectionAttempts = 0;
 const MAX_ATTEMPTS = 5;
 let lastDetectionTime = 0;
 const DETECTION_COOLDOWN = 1000; // 1 second cooldown between detections
-let blurListenerAttached = false;
+let filterListenerAttached = false;
 let isExtensionEnabled = true; // Default to true
 let currentKeydownHandler = null; // Store keydown handler reference for removal
 
@@ -104,7 +104,7 @@ function checkForVideo() {
       chrome.runtime.sendMessage({ type: 'VIDEO_DETECTED' });
       lastDetectionTime = currentTime;
       videoDetectionAttempts = MAX_ATTEMPTS;
-      attachBlurToggle(video);
+      attachFilterToggle(video);
     });
     return true;
   }
@@ -118,18 +118,18 @@ function checkForVideo() {
   }
 }
 
-// ===== Blur Management =====
-function attachBlurToggle(video, key = null) {
-  if (blurListenerAttached) return;
+// ===== Filter Management =====
+function attachFilterToggle(video, key = null) {
+  if (filterListenerAttached) return;
   
   const setupListener = (shortcutKey) => {
     currentKeydownHandler = (e) => {
       if (e.key.toLowerCase() === shortcutKey.toLowerCase() && isExtensionEnabled) {
-        chrome.runtime.sendMessage({ type: 'TOGGLE_BLUR' });
+        chrome.runtime.sendMessage({ type: 'TOGGLE_FILTER' });
       }
     };
     document.addEventListener('keydown', currentKeydownHandler);
-    blurListenerAttached = true;
+    filterListenerAttached = true;
   };
 
   // If no key provided, get it from background
@@ -153,7 +153,7 @@ chrome.runtime.onMessage.addListener((message) => {
       // Clean up when disabled
       if (currentKeydownHandler) {
         document.removeEventListener('keydown', currentKeydownHandler);
-        blurListenerAttached = false;
+        filterListenerAttached = false;
       }
     } else {
       // Start fresh detection when enabled
@@ -162,20 +162,31 @@ chrome.runtime.onMessage.addListener((message) => {
       const video = getVideoElement();
       if (video) {
         // If video exists, attach listener immediately
-        attachBlurToggle(video);
+        attachFilterToggle(video);
       }
       setTimeout(checkForVideo, 1500); // Start detection
     }
   }
 
-  if (message.type === 'APPLY_BLUR') {
-    console.log('[Content] Applying blur:', message);
+  if (message.type === 'APPLY_FILTER') {
+    console.log('[Content] Applying filter:', message);
     const video = getVideoElement();
     if (video) {
-      video.style.filter = message.shouldBlur ? `blur(${message.intensity || 50}px)` : 'none';
+      let filterValue = '';
+      if (message.shouldFilter) {
+        switch (message.filterType) {
+          case 'blur':
+            filterValue = `blur(${message.intensity}px)`;
+            break;
+          case 'opacity':
+            filterValue = `opacity(${message.intensity}%)`;
+            break;
+        }
+      }
+      video.style.filter = filterValue;
       console.log('[Content] Video filter set to:', video.style.filter);
     } else {
-      console.log('[Content] No video found to unblur');
+      console.log('[Content] No video found to apply filter');
     }
   }
 
@@ -185,14 +196,14 @@ chrome.runtime.onMessage.addListener((message) => {
     // Remove old listener if exists
     if (currentKeydownHandler) {
       document.removeEventListener('keydown', currentKeydownHandler);
-      blurListenerAttached = false;
+      filterListenerAttached = false;
       console.log('[Content] Removed old shortcut listener');
     }
     
     // Re-attach with new key if we have a video
     const video = getVideoElement();
     if (video) {
-      attachBlurToggle(video, message.key);
+      attachFilterToggle(video, message.key);
       console.log('[Content] Attached new shortcut listener');
     } else {
       console.log('[Content] No video found for shortcut update');

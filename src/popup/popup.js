@@ -3,7 +3,7 @@
  * Responsibilities:
  * - Displays and updates video detection status
  * - Handles shortcut key customization
- * - Controls blur intensity slider
+ * - Controls filter intensity slider
  * - Manages extension enable/disable toggle
  */
 
@@ -15,13 +15,15 @@ chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
   const shortcutContainer = document.getElementById('shortcut-container');
   const shortcutKey = document.getElementById('shortcut-key');
   const intensityContainer = document.getElementById('intensity-container');
-  const intensitySlider = document.getElementById('blur-intensity');
+  const intensitySlider = document.getElementById('filter-intensity');
   const intensityValue = document.getElementById('intensity-value');
   const enableSwitch = document.getElementById('enableSwitch');
   const mainView = document.getElementById('mainView');
   const donateView = document.getElementById('donateView');
   const supportButton = document.getElementById('supportButton');
   const backButton = document.querySelector('.back-button');
+  const filterSelect = document.getElementById('filter-type');
+  const selectItems = document.querySelector('.select-items');
   
   // ===== Event Handlers =====
   // Add intensity slider handler
@@ -29,8 +31,60 @@ chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
     const value = intensitySlider.value;
     intensityValue.textContent = `${value}%`;
     chrome.runtime.sendMessage({ 
-      type: 'UPDATE_BLUR_INTENSITY',
+      type: 'UPDATE_FILTER_INTENSITY',
       intensity: parseInt(value)
+    });
+  });
+
+  // Add custom dropdown handlers
+  filterSelect.addEventListener('click', (e) => {
+    e.stopPropagation();
+    selectItems.classList.toggle('hidden');
+    // Hide the currently selected option
+    const currentValue = filterSelect.textContent;
+    document.querySelectorAll('.select-item').forEach(item => {
+      if (item.textContent === currentValue) {
+        item.style.display = 'none';
+      } else {
+        item.style.display = 'block';
+        // Reset background
+        item.style.background = 'var(--bg-color)';
+      }
+    });
+  });
+
+  // Close dropdown when clicking outside
+  document.addEventListener('click', () => {
+    selectItems.classList.add('hidden');
+  });
+
+  // Handle option selection
+  document.querySelectorAll('.select-item').forEach(item => {
+    item.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const value = item.dataset.value;
+      filterSelect.textContent = item.textContent;
+      selectItems.classList.add('hidden');
+      // Reset display and background of all items
+      document.querySelectorAll('.select-item').forEach(i => {
+        i.style.display = 'block';
+        i.style.background = 'var(--bg-color)';
+      });
+      chrome.runtime.sendMessage({ 
+        type: 'UPDATE_FILTER_TYPE',
+        filterType: value
+      });
+    });
+
+    // Add hover event listeners
+    item.addEventListener('mouseenter', () => {
+      item.style.background = 'var(--primary-color)';
+      item.style.color = 'var(--text-color)';
+    });
+
+    item.addEventListener('mouseleave', () => {
+      item.style.background = 'var(--bg-color)';
+      item.style.color = 'var(--text-color)';
     });
   });
 
@@ -147,7 +201,7 @@ chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
   });
 
   // Get initial intensity value
-  chrome.runtime.sendMessage({ type: 'GET_BLUR_INTENSITY' }, (response) => {
+  chrome.runtime.sendMessage({ type: 'GET_FILTER_INTENSITY' }, (response) => {
     if (response?.intensity) {
       intensitySlider.value = response.intensity;
       intensityValue.textContent = `${response.intensity}%`;
@@ -196,5 +250,15 @@ chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
   backButton.addEventListener('click', () => {
     donateView.classList.remove('active');
     mainView.classList.add('active');
+  });
+
+  // Get initial filter type
+  chrome.runtime.sendMessage({ type: 'GET_FILTER_TYPE' }, (response) => {
+    if (response?.filterType) {
+      filterSelect.textContent = response.filterType;
+      document.querySelectorAll('.select-item').forEach(item => {
+        item.classList.toggle('selected', item.dataset.value === response.filterType);
+      });
+    }
   });
 }); 

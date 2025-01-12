@@ -84,8 +84,8 @@ describe('Video Detection Extension', () => {
     });
   });
 
-  describe('Blur Functionality', () => {
-    test('should toggle blur on "b" keypress', () => {
+  describe('Filter Functionality', () => {
+    test('should toggle filter on shortcut keypress', () => {
       window.location.href = 'https://www.youtube.com/watch?v=12345';
       document.body.innerHTML = '<video src="test.mp4"></video>';
       
@@ -95,12 +95,12 @@ describe('Video Detection Extension', () => {
       // Simulate ',' keypress
       document.dispatchEvent(new KeyboardEvent('keydown', { key: ',' }));
       expect(chrome.runtime.sendMessage).toHaveBeenCalledWith({ 
-        type: 'TOGGLE_BLUR',
+        type: 'TOGGLE_FILTER',
         type: 'VIDEO_DETECTED'
       });
     });
 
-    test('should apply blur state from background', () => {
+    test('should apply blur filter state from background', () => {
       window.location.href = 'https://www.youtube.com/watch?v=12345';
       document.body.innerHTML = '<video src="test.mp4"></video>';
       
@@ -109,15 +109,36 @@ describe('Video Detection Extension', () => {
       
       // Simulate message from background
       chrome.runtime.onMessage.listener({
-        type: 'APPLY_BLUR',
-        shouldBlur: true
+        type: 'APPLY_FILTER',
+        shouldFilter: true,
+        filterType: 'blur',
+        intensity: 50
       });
 
       const video = document.querySelector('video');
       expect(video.style.filter).toBe('blur(50px)');
     });
 
-    test('should not attach multiple blur listeners', () => {
+    test('should apply opacity filter state from background', () => {
+      window.location.href = 'https://www.youtube.com/watch?v=12345';
+      document.body.innerHTML = '<video src="test.mp4"></video>';
+      
+      // Detect video first
+      checkForVideo();
+      
+      // Simulate message from background
+      chrome.runtime.onMessage.listener({
+        type: 'APPLY_FILTER',
+        shouldFilter: true,
+        filterType: 'opacity',
+        intensity: 50
+      });
+
+      const video = document.querySelector('video');
+      expect(video.style.filter).toBe('opacity(50%)');
+    });
+
+    test('should not attach multiple filter listeners', () => {
       // Mock Date.now to control cooldown timing
       const realDateNow = Date.now.bind(global.Date);
       let currentTime = 0;
@@ -139,23 +160,25 @@ describe('Video Detection Extension', () => {
       
       // Simulate ',' keypress - should only trigger once
       document.dispatchEvent(new KeyboardEvent('keydown', { key: ',' }));
-      expect(chrome.runtime.sendMessage).toHaveBeenCalledTimes(2); // VIDEO_DETECTED + TOGGLE_BLUR
+      expect(chrome.runtime.sendMessage).toHaveBeenCalledTimes(2); // VIDEO_DETECTED + TOGGLE_FILTER
       
       // Restore original Date.now
       global.Date.now = realDateNow;
     });
 
-    test('should maintain blur state on video source change', () => {
+    test('should maintain filter state on video source change', () => {
       window.location.href = 'https://www.youtube.com/watch?v=12345';
       document.body.innerHTML = '<video src="test1.mp4"></video>';
       
       // Initial detection
       checkForVideo();
       
-      // Apply blur
+      // Apply filter
       chrome.runtime.onMessage.listener({
-        type: 'APPLY_BLUR',
-        shouldBlur: true
+        type: 'APPLY_FILTER',
+        shouldFilter: true,
+        filterType: 'blur',
+        intensity: 50
       });
 
       // Change video source and reapply state
@@ -163,15 +186,17 @@ describe('Video Detection Extension', () => {
       global.lastDetectionTime = 0;  // Reset cooldown
       checkForVideo();  // Re-detect after source change
       chrome.runtime.onMessage.listener({
-        type: 'APPLY_BLUR',
-        shouldBlur: true
+        type: 'APPLY_FILTER',
+        shouldFilter: true,
+        filterType: 'blur',
+        intensity: 50
       });
       
       const video = document.querySelector('video');
       expect(video.style.filter).toBe('blur(50px)');
     });
 
-    test('should handle Prime Video second player blur', () => {
+    test('should handle Prime Video second player filter', () => {
       window.location.href = 'https://www.primevideo.com/detail/12345';
       document.body.innerHTML = `
         <video src="test1.mp4"></video>
@@ -181,15 +206,17 @@ describe('Video Detection Extension', () => {
       // Detect video first
       checkForVideo();
       
-      // Apply blur
+      // Apply filter
       chrome.runtime.onMessage.listener({
-        type: 'APPLY_BLUR',
-        shouldBlur: true
+        type: 'APPLY_FILTER',
+        shouldFilter: true,
+        filterType: 'blur',
+        intensity: 50
       });
 
       const videos = document.querySelectorAll('video');
       expect(videos[0].style.filter).toBe('');  // First video unchanged
-      expect(videos[1].style.filter).toBe('blur(50px)');  // Second video blurred
+      expect(videos[1].style.filter).toBe('blur(50px)');  // Second video filtered
     });
   });
 
@@ -208,8 +235,10 @@ describe('Video Detection Extension', () => {
           
           // Simulate background's response
           chrome.runtime.onMessage.listener({
-            type: 'APPLY_BLUR',
-            shouldBlur: true
+            type: 'APPLY_FILTER',
+            shouldFilter: true,
+            filterType: 'blur',
+            intensity: 50
           });
 
           const video = document.querySelector('video');
@@ -234,20 +263,20 @@ describe('Video Detection Extension', () => {
       // Old shortcut shouldn't work
       document.dispatchEvent(new KeyboardEvent('keydown', { key: ',' }));
       expect(chrome.runtime.sendMessage).not.toHaveBeenCalledWith({ 
-        type: 'TOGGLE_BLUR' 
+        type: 'TOGGLE_FILTER' 
       });
       
       // New shortcut should work
       document.dispatchEvent(new KeyboardEvent('keydown', { key: 'x' }));
       expect(chrome.runtime.sendMessage).toHaveBeenCalledWith({ 
-        type: 'TOGGLE_BLUR' 
+        type: 'TOGGLE_FILTER' 
       });
     });
 
     test('should persist shortcut across page loads', () => {
       // Mock storage to return custom shortcut
       chrome.storage.local.get.mockImplementationOnce((keys, callback) => {
-        callback({ blurShortcut: 'x' });
+        callback({ filterShortcut: 'x' });
       });
       
       window.location.href = 'https://www.youtube.com/watch?v=12345';
@@ -261,7 +290,7 @@ describe('Video Detection Extension', () => {
       // Should use persisted shortcut
       document.dispatchEvent(new KeyboardEvent('keydown', { key: 'x' }));
       expect(chrome.runtime.sendMessage).toHaveBeenCalledWith({ 
-        type: 'TOGGLE_BLUR' 
+        type: 'TOGGLE_FILTER' 
       });
     });
   });
@@ -302,7 +331,7 @@ describe('Video Detection Extension', () => {
       // New shortcut should work
       document.dispatchEvent(new KeyboardEvent('keydown', { key: 'z' }));
       expect(chrome.runtime.sendMessage).toHaveBeenCalledWith({ 
-        type: 'TOGGLE_BLUR' 
+        type: 'TOGGLE_FILTER' 
       });
     });
   });
