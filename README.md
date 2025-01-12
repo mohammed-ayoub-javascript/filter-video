@@ -1,6 +1,10 @@
 # FilterVideo
 
-A Chrome extension that enhances control while watching videos by providing customizable filters (for now only blur filter is supported) for popular streaming platforms, applied to the video player using a customizable keyboard shortcut.
+A Chrome extension that enhances control while watching videos,
+by providing customizable filters for videos on popular streaming platforms, applied using your chosen keyboard shortcut.
+
+For now, only blur filter is supported, and only YouTube, Netflix,
+and Prime Video platforms are supported.
 
 ## Features
 

@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "FilterVideo",
   "version": "1.0.0",
-  "description": "Filter automatically-detected videos using a shortcut. Control what you watch on popular platforms like YouTube, Netflix, and Prime Video.",
+  "description": "Filter videos using a shortcut. Control your watching experience on popular platforms like YouTube, Netflix, and Prime Video.",
   "author": "Mohamed Elamine Bengueddache",
   "homepage_url": "https://github.com/bengmoh/filter-video",
   "permissions": [

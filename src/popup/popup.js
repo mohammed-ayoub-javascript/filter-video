@@ -18,6 +18,10 @@ chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
   const intensitySlider = document.getElementById('blur-intensity');
   const intensityValue = document.getElementById('intensity-value');
   const enableSwitch = document.getElementById('enableSwitch');
+  const mainView = document.getElementById('mainView');
+  const donateView = document.getElementById('donateView');
+  const supportButton = document.getElementById('supportButton');
+  const backButton = document.querySelector('.back-button');
   
   // ===== Event Handlers =====
   // Add intensity slider handler
@@ -179,5 +183,18 @@ chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
       }
       console.log('[Popup] Extension toggled response:', response);
     });
+  });
+
+  // Add support button event listener
+  supportButton.addEventListener('click', (e) => {
+    e.preventDefault();
+    mainView.classList.remove('active');
+    donateView.classList.add('active');
+  });
+
+  // Add back button event listener
+  backButton.addEventListener('click', () => {
+    donateView.classList.remove('active');
+    mainView.classList.add('active');
   });
 }); 

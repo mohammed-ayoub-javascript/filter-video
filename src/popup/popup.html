@@ -176,9 +176,99 @@
     input:checked + .slider:before {
       transform: translateX(20px);
     }
+
+    .footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid var(--secondary-bg);
+      font-size: 12px;
+    }
+
+    .footer a {
+      color: var(--text-color);
+      text-decoration: none;
+      opacity: 0.8;
+      transition: opacity 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .footer a:hover {
+      opacity: 1;
+      color: var(--primary-color);
+    }
+
+    .footer svg {
+      width: 14px;
+      height: 14px;
+    }
+
+    .view {
+      display: none;
+    }
+
+    .view.active {
+      display: block;
+    }
+
+    .back-button {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      color: var(--text-color);
+      background: none;
+      border: none;
+      padding: 8px 0;
+      cursor: pointer;
+      font-size: 14px;
+      opacity: 0.8;
+      transition: opacity 0.2s ease;
+    }
+
+    .back-button:hover {
+      opacity: 1;
+      color: var(--primary-color);
+    }
+
+    .donate-options {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    .donate-button {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px;
+      background: var(--secondary-bg);
+      border: none;
+      border-radius: 8px;
+      color: var(--text-color);
+      cursor: pointer;
+      transition: background 0.2s ease;
+      text-decoration: none;
+      font-size: 14px;
+    }
+
+    .donate-button:hover {
+      background: var(--hover-color);
+    }
+
+    .donate-button svg {
+      width: 20px;
+      height: 20px;
+    }
   </style>
 </head>
 <body>
+  <!-- Main View -->
+<div id="mainView" class="view active">
   <div class="header">
     <div class="brand">FilterVideo</div>
     <div class="switch-container">
@@ -200,6 +290,53 @@
     <input type="range" id="blur-intensity" min="1" max="100" value="50">
     <span id="intensity-value">50%</span>
   </div>
+
+  <div class="footer">
+    <a href="https://forms.gle/muGcKNufR2XzAnVV9" target="_blank">
+      <svg viewBox="0 0 24 24" fill="currentColor">
+        <path d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-7 12h-2v-2h2v2zm0-4h-2V6h2v4z"/>
+      </svg>
+      Feedback
+    </a>
+    <a href="#" id="supportButton">
+      <svg viewBox="0 0 24 24" fill="currentColor">
+        <path d="M20 3H4v10c0 2.21 1.79 4 4 4h6c2.21 0 4-1.79 4-4v-3h2c1.11 0 2-.89 2-2V5c0-1.11-.89-2-2-2zm0 5h-2V5h2v3zM4 19h16v2H4z"/>
+      </svg>
+      Support
+    </a>
+    <a href="https://github.com/bengmoh/filter-video" target="_blank">
+      <svg viewBox="0 0 24 24" fill="currentColor">
+        <path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/>
+      </svg>
+      Star
+    </a>
+  </div>
+</div>
+
+<!-- Donate View -->
+<div id="donateView" class="view">
+  <button class="back-button">
+    <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+      <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/>
+    </svg>
+    Back
+  </button>
+  
+  <div class="donate-options">
+    <a href="https://www.buymeacoffee.com/filtervideo" target="_blank" class="donate-button">
+      <svg viewBox="0 0 24 24" fill="currentColor">
+        <path d="M20 3H4v10c0 2.21 1.79 4 4 4h6c2.21 0 4-1.79 4-4v-3h2c1.11 0 2-.89 2-2V5c0-1.11-.89-2-2-2zm0 5h-2V5h2v3zM4 19h16v2H4z"/>
+      </svg>
+      Buy Me a Coffee
+    </a>
+    <a href="https://paypal.me/filtervideo" target="_blank" class="donate-button">
+      <svg viewBox="0 0 24 24" fill="currentColor">
+        <path d="M20.067 8.478c.492.88.556 2.014.3 3.327-.74 3.806-3.276 5.12-6.514 5.12h-.5a.805.805 0 0 0-.794.68l-.04.22-.63 3.993-.032.17a.804.804 0 0 1-.794.679H7.72a.483.483 0 0 1-.477-.558L7.418 21h1.518l.95-6.02h1.385c4.678 0 7.75-2.203 8.796-6.502zm-2.96-5.09c.762.868.983 1.81.752 3.285-.019.123-.04.24-.062.36-.735 3.773-3.089 5.446-6.956 5.446H8.957c-.63 0-1.174.414-1.354 1.002l-.014-.002-.93 5.894H3.121a.051.051 0 0 1-.05-.06l2.598-16.51A.95.95 0 0 1 6.607 2h5.976c2.183 0 3.716.469 4.523 1.388z"/>
+      </svg>
+      PayPal
+    </a>
+  </div>
+</div>
 
   <script src="popup.js"></script>
 </body>
