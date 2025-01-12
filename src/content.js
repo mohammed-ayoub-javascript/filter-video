@@ -9,7 +9,7 @@
 
 // ===== State Management =====
 let videoDetectionAttempts = 0;
-const MAX_ATTEMPTS = 3;
+const MAX_ATTEMPTS = 5;
 let lastDetectionTime = 0;
 const DETECTION_COOLDOWN = 1000; // 1 second cooldown between detections
 let blurListenerAttached = false;
@@ -24,7 +24,7 @@ chrome.runtime.sendMessage({ type: 'GET_IS_ENABLED' }, (response) => {
   if (isExtensionEnabled) {
     // Start detection if enabled initially
     videoDetectionAttempts = 0;
-    setTimeout(checkForVideo, 2000);
+    setTimeout(checkForVideo, 1500);
   }
 });
 
@@ -111,8 +111,8 @@ function checkForVideo() {
   
   videoDetectionAttempts++;
   if (videoDetectionAttempts < MAX_ATTEMPTS) {
-    console.log('[Content] Video not found, will retry in 5 seconds');
-    setTimeout(checkForVideo, 5000);
+    console.log('[Content] Video not found, will retry in 3 seconds');
+    setTimeout(checkForVideo, 3000);
   } else {
     console.log('[Content] Max detection attempts reached');
   }
@@ -164,7 +164,7 @@ chrome.runtime.onMessage.addListener((message) => {
         // If video exists, attach listener immediately
         attachBlurToggle(video);
       }
-      setTimeout(checkForVideo, 2000); // Start detection
+      setTimeout(checkForVideo, 1500); // Start detection
     }
   }
 
@@ -210,7 +210,7 @@ new MutationObserver(() => {
     // Only reset and check if it's a video page
     if (isVideoPlayerURL(currentUrl)) {
       videoDetectionAttempts = 0;
-      setTimeout(checkForVideo, 2000);
+      setTimeout(checkForVideo, 1500);
     }
   }
 }).observe(document, {subtree: true, childList: true});
