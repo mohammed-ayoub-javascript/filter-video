@@ -1,5 +1,16 @@
+/**
+ * Popup Script: Manages the extension's popup UI and user interactions
+ * Responsibilities:
+ * - Displays and updates video detection status
+ * - Handles shortcut key customization
+ * - Controls blur intensity slider
+ * - Manages extension enable/disable toggle
+ */
+
+// ===== Initialization =====
 // Query current tab for video status
 chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
+  // ===== UI Elements =====
   const status = document.getElementById('status');
   const shortcutContainer = document.getElementById('shortcut-container');
   const shortcutKey = document.getElementById('shortcut-key');
@@ -8,10 +19,11 @@ chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
   const intensityValue = document.getElementById('intensity-value');
   const enableSwitch = document.getElementById('enableSwitch');
   
+  // ===== Event Handlers =====
   // Add intensity slider handler
   intensitySlider.addEventListener('input', () => {
     const value = intensitySlider.value;
-    intensityValue.textContent = `${value}px`;
+    intensityValue.textContent = `${value}%`;
     chrome.runtime.sendMessage({ 
       type: 'UPDATE_BLUR_INTENSITY',
       intensity: parseInt(value)
@@ -25,6 +37,7 @@ chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
     return;
   }
 
+  // ===== Message Listeners =====
   // Listen for video status updates
   chrome.runtime.onMessage.addListener((message) => {
     console.log('[Popup] Received message:', message);
@@ -46,6 +59,7 @@ chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
     }
   });
 
+  // ===== Shortcut Key Management =====
   // Get current shortcut from background
   console.log('[Popup] Requesting current shortcut');
   chrome.runtime.sendMessage({ type: 'GET_SHORTCUT' }, (response) => {
@@ -53,7 +67,7 @@ chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
     
     if (chrome.runtime.lastError) {
       console.log('[Popup] Error getting shortcut:', chrome.runtime.lastError);
-      shortcutKey.textContent = 'b';  // fallback to default
+      shortcutKey.textContent = ',';  // fallback to default
       return;
     }
     if (response?.key) {
@@ -64,7 +78,7 @@ chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
   // Handle shortcut key changes
   shortcutKey.addEventListener('click', () => {
     shortcutKey.classList.add('listening');
-    shortcutKey.textContent = 'Press a key';
+    shortcutKey.textContent = 'key'; // Shorter message
 
     // One-time keyboard listener
     const keyHandler = (e) => {
@@ -87,7 +101,7 @@ chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
             if (response?.key) {
               shortcutKey.textContent = response.key;
             } else {
-              shortcutKey.textContent = 'b';  // fallback to default
+              shortcutKey.textContent = ',';  // fallback to default
             }
           });
         }
@@ -100,6 +114,7 @@ chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
     document.addEventListener('keydown', keyHandler);
   });
 
+  // ===== Initial State Setup =====
   // Get initial status from background
   console.log('[Popup] Requesting initial video status');
   chrome.runtime.sendMessage({ 
@@ -131,10 +146,11 @@ chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
   chrome.runtime.sendMessage({ type: 'GET_BLUR_INTENSITY' }, (response) => {
     if (response?.intensity) {
       intensitySlider.value = response.intensity;
-      intensityValue.textContent = `${response.intensity}px`;
+      intensityValue.textContent = `${response.intensity}%`;
     }
   });
 
+  // ===== Extension State Management =====
   // Load initial extension enabled state and show/hide UI accordingly
   chrome.runtime.sendMessage({ type: 'GET_IS_ENABLED' }, (response) => {
     enableSwitch.checked = response.isEnabled;

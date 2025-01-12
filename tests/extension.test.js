@@ -92,8 +92,8 @@ describe('Video Detection Extension', () => {
       // Detect video first
       checkForVideo();
       
-      // Simulate 'b' keypress
-      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'b' }));
+      // Simulate ',' keypress
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: ',' }));
       expect(chrome.runtime.sendMessage).toHaveBeenCalledWith({ 
         type: 'TOGGLE_BLUR',
         type: 'VIDEO_DETECTED'
@@ -137,8 +137,8 @@ describe('Video Detection Extension', () => {
       // Second detection
       checkForVideo();
       
-      // Simulate 'b' keypress - should only trigger once
-      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'b' }));
+      // Simulate ',' keypress - should only trigger once
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: ',' }));
       expect(chrome.runtime.sendMessage).toHaveBeenCalledTimes(2); // VIDEO_DETECTED + TOGGLE_BLUR
       
       // Restore original Date.now
@@ -204,7 +204,7 @@ describe('Video Detection Extension', () => {
         
         // Then wait for video detection
         setTimeout(() => {
-          document.dispatchEvent(new KeyboardEvent('keydown', { key: 'b' }));
+          document.dispatchEvent(new KeyboardEvent('keydown', { key: ',' }));
           
           // Simulate background's response
           chrome.runtime.onMessage.listener({
@@ -232,7 +232,7 @@ describe('Video Detection Extension', () => {
       });
       
       // Old shortcut shouldn't work
-      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'b' }));
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: ',' }));
       expect(chrome.runtime.sendMessage).not.toHaveBeenCalledWith({ 
         type: 'TOGGLE_BLUR' 
       });

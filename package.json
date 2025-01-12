@@ -1,12 +1,14 @@
 {
-  "name": "video-blur-extension",
+  "name": "filter-video",
   "version": "1.0.0",
-  "description": "Chrome extension for video detection",
+  "description": "A privacy-focused video filter extension for popular streaming platforms",
   "scripts": {
     "test": "jest",
     "test:watch": "jest --watch"
   },
   "devDependencies": {
+    "@babel/core": "^7.26.0",
+    "@babel/preset-env": "^7.26.0",
     "jest": "^29.7.0",
     "jest-environment-jsdom": "^29.7.0"
   }

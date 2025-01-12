@@ -1,3 +1,13 @@
+/**
+ * Content Script: Handles video detection and blur functionality
+ * Responsibilities:
+ * - Detects video elements on supported streaming platforms
+ * - Manages blur effect on detected videos
+ * - Handles keyboard shortcuts for blur toggle
+ * - Maintains connection with background script
+ */
+
+// ===== State Management =====
 let videoDetectionAttempts = 0;
 const MAX_ATTEMPTS = 3;
 let lastDetectionTime = 0;
@@ -6,6 +16,7 @@ let blurListenerAttached = false;
 let isExtensionEnabled = true; // Default to true
 let currentKeydownHandler = null; // Store keydown handler reference for removal
 
+// ===== Initialization =====
 // Get initial extension state
 chrome.runtime.sendMessage({ type: 'GET_IS_ENABLED' }, (response) => {
   isExtensionEnabled = response?.isEnabled ?? true;
@@ -17,6 +28,7 @@ chrome.runtime.sendMessage({ type: 'GET_IS_ENABLED' }, (response) => {
   }
 });
 
+// ===== Helper Functions =====
 // Helper function to check if current page is a video player page
 function isVideoPlayerURL(url) {
   let handling = "";
@@ -44,6 +56,7 @@ function getVideoElement(url=window.location.href) {
   return document.querySelector('video');
 }
 
+// Helper function for safe runtime operations
 function safeRuntime(callback) {
   try {
     callback();
@@ -56,6 +69,7 @@ function safeRuntime(callback) {
   }
 }
 
+// ===== Video Detection =====
 function checkForVideo() {
   if (!isExtensionEnabled) return;
   const currentUrl = window.location.href;
@@ -104,10 +118,7 @@ function checkForVideo() {
   }
 }
 
-function toggleBlur(video) {
-  chrome.runtime.sendMessage({ type: 'TOGGLE_BLUR' });
-}
-
+// ===== Blur Management =====
 function attachBlurToggle(video, key = null) {
   if (blurListenerAttached) return;
   
@@ -124,14 +135,14 @@ function attachBlurToggle(video, key = null) {
   // If no key provided, get it from background
   if (!key) {
     chrome.runtime.sendMessage({ type: 'GET_SHORTCUT' }, (response) => {
-      setupListener(response?.key || 'b');
+      setupListener(response?.key || ',');
     });
   } else {
     setupListener(key);
   }
 }
 
-// Update message listener
+// ===== Message Handlers =====
 chrome.runtime.onMessage.addListener((message) => {
   // Listen for extension state changes
   if (message.type === 'TOGGLE_EXTENSION') {
@@ -189,7 +200,7 @@ chrome.runtime.onMessage.addListener((message) => {
   }
 });
 
-// Watch for URL changes
+// ===== URL Change Detection =====
 let lastUrl = location.href;
 new MutationObserver(() => {
   const currentUrl = location.href;
@@ -204,6 +215,7 @@ new MutationObserver(() => {
   }
 }).observe(document, {subtree: true, childList: true});
 
+// ===== Export for Testing =====
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
     isVideoPlayerURL,

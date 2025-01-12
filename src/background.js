@@ -1,11 +1,22 @@
+/**
+ * Background Script: Manages extension state and coordinates between components
+ * Responsibilities:
+ * - Maintains video detection state across tabs
+ * - Manages extension settings and persistence
+ * - Coordinates messaging between popup and content scripts
+ * - Keeps service worker alive for consistent functionality
+ */
+
+// ===== State Management =====
 // Store tabs with detected videos: tabId -> { detected: boolean, blurred: boolean }
 let detectedVideoTabs = new Map();
 
-// Add at the top with other state
-let blurShortcut = 'b';  // Default shortcut key
+// Extension settings with defaults
+let blurShortcut = ',';  // Default shortcut key
 let blurIntensity = 50;  // Default blur intensity
 let isExtensionEnabled = true; // Default to enabled
 
+// ===== Initialization =====
 // Function to manage alarm
 function updateAlarm(enabled) {
   if (enabled) {
@@ -13,6 +24,15 @@ function updateAlarm(enabled) {
   } else {
     chrome.alarms.clear('keepAlive');
   }
+}
+
+/**
+ * Updates the extension icon based on enabled state
+ * @param {boolean} enabled - Whether the extension is enabled
+ */
+function updateIcon(enabled) {
+  const iconPath = enabled ? 'icons/icon32.png' : 'icons/icon32-disabled.png';
+  chrome.action.setIcon({ path: iconPath });
 }
 
 // Load saved state and set up initial alarm
@@ -28,8 +48,10 @@ chrome.storage.local.get(['blurShortcut', 'blurIntensity', 'isEnabled'], (result
   isExtensionEnabled = result.isEnabled ?? true;
   console.log('[Background] Loaded extension state:', isExtensionEnabled);
   updateAlarm(isExtensionEnabled); // Set initial alarm state
+  updateIcon(isExtensionEnabled); // Set initial icon state
 });
 
+// ===== Helper Functions =====
 // Helper function to check if URL is a video player page
 function isVideoPlayerURL(url) {
   let handling = "";
@@ -47,6 +69,35 @@ function isVideoPlayerURL(url) {
   return handling;
 }
 
+/**
+ * Safely sends a message to a tab with error handling
+ * @param {number} tabId - Target tab ID
+ * @param {object} message - Message to send
+ */
+function safeSendMessage(tabId, message) {
+  // First check if the tab exists and is ready
+  chrome.tabs.get(tabId).then(tab => {
+    if (tab.status === 'complete' && !tab.url.startsWith('chrome://')) {
+      return chrome.tabs.sendMessage(tabId, message).catch(() => {
+        // Silently ignore connection errors
+      });
+    }
+  }).catch(() => {
+    // Silently ignore if tab doesn't exist
+  });
+}
+
+/**
+ * Safely broadcasts a message to the extension
+ * @param {object} message - Message to broadcast
+ */
+function safeBroadcast(message) {
+  chrome.runtime.sendMessage(message).catch(() => {
+    // Silently ignore connection errors
+  });
+}
+
+// ===== Tab Event Handlers =====
 // Handle tab switching (instant check, no detection needed)
 chrome.tabs.onActivated.addListener(async (activeInfo) => {
   const tab = await chrome.tabs.get(activeInfo.tabId);
@@ -66,7 +117,7 @@ chrome.webNavigation.onHistoryStateUpdated.addListener((details) => {
     console.log('[URL Change] Not a video page:', details.url);
     detectedVideoTabs.delete(details.tabId);
     // Notify about video status change
-    chrome.runtime.sendMessage({ 
+    safeBroadcast({ 
       type: 'VIDEO_STATUS_CHANGED',
       tabId: details.tabId,
       hasVideo: false 
@@ -85,17 +136,7 @@ chrome.webNavigation.onCompleted.addListener((details) => {
   }
 });
 
-// Helper function for safe message sending
-function safeSendMessage(tabId, message) {
-  chrome.tabs.sendMessage(tabId, message).catch(error => {
-    if (error.message.includes('receiving end does not exist')) {
-      console.log('[Background] Tab not ready or closed:', tabId);
-    } else {
-      console.error('[Background] Message send error:', error);
-    }
-  });
-}
-
+// ===== Message Handler =====
 // Listen for messages
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   console.log('[Background] Received message:', message);
@@ -114,6 +155,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     isExtensionEnabled = message.enabled;
     chrome.storage.local.set({ isEnabled: isExtensionEnabled });
     console.log('[Background] Extension toggled to:', isExtensionEnabled);
+    
+    updateIcon(isExtensionEnabled); // Update icon when state changes
     
     if (!isExtensionEnabled) {
       // Unblur all detected videos when disabled
@@ -149,6 +192,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   const tabId = sender.tab?.id;
   console.log('[Background] Processing message for tab:', tabId);
   
+  // Handle content script messages
   switch(message.type) {
     case 'VIDEO_DETECTED':
       if (!isExtensionEnabled) {
@@ -162,7 +206,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         blurred: false  // Initialize blur state
       });
       // Broadcast to popup
-      chrome.runtime.sendMessage({ 
+      safeBroadcast({ 
         type: 'VIDEO_DETECTED',
         tabId: tabId
       });
@@ -235,6 +279,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 });
 
+// ===== Cleanup and Maintenance =====
 // Clean up when tab is closed
 chrome.tabs.onRemoved.addListener((tabId) => {
   if (detectedVideoTabs.has(tabId)) {
@@ -243,6 +288,7 @@ chrome.tabs.onRemoved.addListener((tabId) => {
   }
 });
 
+// Keep alive handler
 chrome.alarms.onAlarm.addListener((alarm) => {
   if (alarm.name === 'keepAlive') {
     // Check if extension is enabled
@@ -254,6 +300,7 @@ chrome.alarms.onAlarm.addListener((alarm) => {
   }
 });
 
+// Export for testing
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
     isVideoPlayerURL,

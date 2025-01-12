@@ -1,7 +1,10 @@
 {
   "manifest_version": 3,
-  "name": "URL Logger & Video Blur",
-  "version": "1.0",
+  "name": "FilterVideo",
+  "version": "1.0.0",
+  "description": "Filter automatically-detected videos using a shortcut. Control what you watch on popular platforms like YouTube, Netflix, and Prime Video.",
+  "author": "Mohamed Elamine Bengueddache",
+  "homepage_url": "https://github.com/bengmoh/filter-video",
   "permissions": [
     "tabs",
     "webNavigation",
@@ -21,7 +24,15 @@
     "matches": ["<all_urls>"],
     "js": ["content.js"]
   }],
+  "icons": {
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
   "action": {
+    "default_icon": {
+      "32": "icons/icon32.png"
+    },
     "default_popup": "popup/popup.html"
   }
 }
