@@ -2,9 +2,13 @@
   "name": "filter-video",
   "version": "1.0.0",
   "description": "A privacy-focused video filter extension for popular streaming platforms",
+  "license": "GPL-3.0",
   "scripts": {
     "test": "jest",
-    "test:watch": "jest --watch"
+    "test:watch": "jest --watch",
+    "build": "node build.js",
+    "zip": "cd dist && zip -r ../filter-video.zip *",
+    "package": "npm run build && npm run zip"
   },
   "devDependencies": {
     "@babel/core": "^7.26.0",

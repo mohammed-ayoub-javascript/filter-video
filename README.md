@@ -33,6 +33,26 @@ and Prime Video platforms.
 3. Enable "Developer mode"
 4. Click "Load unpacked" and select the `src` directory
 
+### Development
+
+1. Install dependencies:
+
+   ```bash
+   npm install
+   ```
+
+2. Run tests:
+
+   ```bash
+   npm run test
+   ```
+
+3. Build for production:
+   ```bash
+   npm run package
+   ```
+   This will create a production build in the `dist` directory and a ZIP file ready for the Chrome Web Store.
+
 ## Usage
 
 1. Click the FilterVideo icon in your browser toolbar
