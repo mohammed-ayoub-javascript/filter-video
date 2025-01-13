@@ -16,17 +16,17 @@ describe('Video Detection Extension', () => {
     test('should identify video pages correctly', () => {
       const testCases = [
         // YouTube
-        { url: 'https://www.youtube.com/watch?v=12345', expected: 'default' },
-        { url: 'https://www.youtube.com/feed', expected: '' },
+        { url: 'https://www.youtube.com/watch?v=12345', expected: 1 },
+        { url: 'https://www.youtube.com/feed', expected: 0 },
         
         // Netflix
-        { url: 'https://www.netflix.com/watch/12345', expected: 'default' },
-        { url: 'https://www.netflix.com/browse', expected: '' },
-        { url: 'https://www.netflix.com/watch/12345?miniDpPlayButton', expected: '' },
+        { url: 'https://www.netflix.com/watch/12345', expected: 1 },
+        { url: 'https://www.netflix.com/browse', expected: 0 },
+        { url: 'https://www.netflix.com/watch/12345?miniDpPlayButton', expected: 0 },
         
         // Prime
-        { url: 'https://www.primevideo.com/detail/12345', expected: 'amazon' },
-        { url: 'https://www.primevideo.com/browse', expected: '' }
+        { url: 'https://www.primevideo.com/detail/12345', expected: 2 },
+        { url: 'https://www.primevideo.com/browse', expected: 0 }
       ];
 
       testCases.forEach(({ url, expected }) => {

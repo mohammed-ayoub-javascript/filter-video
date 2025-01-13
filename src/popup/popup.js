@@ -141,6 +141,17 @@ chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
     // One-time keyboard listener
     const keyHandler = (e) => {
       e.preventDefault();
+      
+      if (e.key === 'Escape') {
+        // Cancel shortcut change, revert to current shortcut
+        chrome.runtime.sendMessage({ type: 'GET_SHORTCUT' }, (response) => {
+          shortcutKey.textContent = response?.key || ',';
+        });
+        shortcutKey.classList.remove('listening');
+        document.removeEventListener('keydown', keyHandler);
+        return;
+      }
+
       const newKey = e.key.toLowerCase();
       
       // Update UI immediately
@@ -211,7 +222,7 @@ chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
   // ===== Extension State Management =====
   // Load initial extension enabled state and show/hide UI accordingly
   chrome.runtime.sendMessage({ type: 'GET_IS_ENABLED' }, (response) => {
-    enableSwitch.checked = response.isEnabled;
+    enableSwitch.checked = response.isEnabled ?? true;
     if (response.isEnabled) {
       status.classList.remove('hidden');
     }

@@ -1,3 +1,5 @@
+import { isVideoPlayerURL } from './utils/VideoDetection.js';
+
 /**
  * Background Script: Manages extension state and coordinates between components
  * Responsibilities:
@@ -57,23 +59,6 @@ chrome.storage.local.get(['filterShortcut', 'filterIntensity', 'isEnabled', 'fil
 });
 
 // ===== Helper Functions =====
-// Helper function to check if URL is a video player page
-function isVideoPlayerURL(url) {
-  let handling = "";
-  // For Netflix, specifically check for watch/ but not browse or home
-  if (url.includes('youtube.com/watch') ||
-     (url.includes('netflix.com/watch') &&
-      !url.includes('miniDpPlayButton') &&
-      !url.includes('/browse'))) {
-    handling = "default";
-  }
-  
-  else if (url.includes('primevideo.com') && url.includes('detail')) {
-    handling = "amazon";
-  }
-  return handling;
-}
-
 /**
  * Safely sends a message to a tab with error handling
  * @param {number} tabId - Target tab ID
