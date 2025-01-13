@@ -1,3 +1,5 @@
+import { isVideoPlayerURL } from './utils/VideoDetection.js';
+
 /**
  * Content Script: Handles video detection and blur functionality
  * Responsibilities:
@@ -9,7 +11,7 @@
 
 // ===== State Management =====
 let videoDetectionAttempts = 0;
-const MAX_ATTEMPTS = 5;
+const MAX_ATTEMPTS = 30;
 let lastDetectionTime = 0;
 const DETECTION_COOLDOWN = 1000; // 1 second cooldown between detections
 let filterListenerAttached = false;
@@ -17,39 +19,26 @@ let isExtensionEnabled = true; // Default to true
 let currentKeydownHandler = null; // Store keydown handler reference for removal
 
 // ===== Initialization =====
+
+if (isVideoPlayerURL(window.location.href)) {
+  videoDetectionAttempts = 0;
+  setTimeout(checkForVideo, 1000);
+}
+
 // Get initial extension state
 chrome.runtime.sendMessage({ type: 'GET_IS_ENABLED' }, (response) => {
   isExtensionEnabled = response?.isEnabled ?? true;
   console.log('[Content] Extension state:', isExtensionEnabled);
-  if (isExtensionEnabled) {
-    // Start detection if enabled initially
-    videoDetectionAttempts = 0;
-    setTimeout(checkForVideo, 1500);
-  }
 });
 
 // ===== Helper Functions =====
-// Helper function to check if current page is a video player page
-function isVideoPlayerURL(url) {
-  let handling = "";
-  // For Netflix, specifically check for watch/ but not browse or home
-  if (url.includes('youtube.com/watch') || (url.includes('netflix.com/watch') && !url.includes('miniDpPlayButton') && !url.includes('/browse'))) {
-    handling = "default";
-  }
-  
-  else if (url.includes('primevideo.com') && url.includes('detail')) {
-    handling = "amazon";
-  }
-  return handling;
-}
-
 // Helper function to get video element using consistent logic
 function getVideoElement(url=window.location.href) {
   if (!isExtensionEnabled) return null;
   const handling = isVideoPlayerURL(url);
   if (!handling) return null;
   
-  if (handling === "amazon") {
+  if (handling === 2) {
     const videos = document.querySelectorAll('video');
     return videos.length > 1 ? videos[1] : null;
   }
@@ -90,7 +79,7 @@ function checkForVideo() {
   console.log('[Content] Checking for video on:', currentUrl, 'handling:', handling);
   
   let video;
-  if (handling === "amazon") {
+  if (handling === 2) {
     const videos = document.querySelectorAll('video');
     console.log('[Content] Found', videos.length, 'videos');
     video = videos.length > 1 ? videos[1] : null;
@@ -111,8 +100,8 @@ function checkForVideo() {
   
   videoDetectionAttempts++;
   if (videoDetectionAttempts < MAX_ATTEMPTS) {
-    console.log('[Content] Video not found, will retry in 3 seconds');
-    setTimeout(checkForVideo, 3000);
+    console.log('[Content] Video not found, will retry in 1 second');
+    setTimeout(checkForVideo, 1000);
   } else {
     console.log('[Content] Max detection attempts reached');
   }
@@ -164,7 +153,7 @@ chrome.runtime.onMessage.addListener((message) => {
         // If video exists, attach listener immediately
         attachFilterToggle(video);
       }
-      setTimeout(checkForVideo, 1500); // Start detection
+      setTimeout(checkForVideo, 1000); // Start detection
     }
   }
 
@@ -221,7 +210,7 @@ new MutationObserver(() => {
     // Only reset and check if it's a video page
     if (isVideoPlayerURL(currentUrl)) {
       videoDetectionAttempts = 0;
-      setTimeout(checkForVideo, 1500);
+      setTimeout(checkForVideo, 1000);
     }
   }
 }).observe(document, {subtree: true, childList: true});
