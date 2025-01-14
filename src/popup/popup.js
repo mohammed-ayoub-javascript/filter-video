@@ -24,6 +24,10 @@ chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
   const backButton = document.querySelector('.back-button');
   const filterSelect = document.getElementById('filter-type');
   const selectItems = document.querySelector('.select-items');
+  const autoFilterSwitch = document.getElementById('autoFilterSwitch');
+  const settingsButton = document.getElementById('settingsButton');
+  const settingsView = document.getElementById('settingsView');
+  const settingsBackButton = document.querySelector('#settingsView .back-button');
   
   // ===== Event Handlers =====
   // Add intensity slider handler
@@ -219,6 +223,16 @@ chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
     }
   });
 
+  // Get initial auto-filter state
+  console.log('[Popup] Requesting initial auto-filter state');
+  chrome.runtime.sendMessage({ type: 'GET_FILTER_ON_DETECTION' }, (response) => {
+    if (chrome.runtime.lastError) {
+      console.error('[Popup] Error getting auto-filter state:', chrome.runtime.lastError.message);
+      return;
+    }
+    autoFilterSwitch.checked = response.autoFilter ?? false;
+  });
+
   // ===== Extension State Management =====
   // Load initial extension enabled state and show/hide UI accordingly
   chrome.runtime.sendMessage({ type: 'GET_IS_ENABLED' }, (response) => {
@@ -250,15 +264,53 @@ chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
     });
   });
 
-  // Add support button event listener
-  supportButton.addEventListener('click', (e) => {
-    e.preventDefault();
+  // ===== Settings View Management =====
+  // Handle settings button click
+  settingsButton.addEventListener('click', () => {
+    console.log('[Popup] Opening settings view');
+    mainView.classList.remove('active');
+    settingsView.classList.add('active');
+    // Get current auto-filter state
+    chrome.runtime.sendMessage({ type: 'GET_FILTER_ON_DETECTION' }, (response) => {
+      if (chrome.runtime.lastError) {
+        console.error('[Popup] Auto-filter toggle error:', chrome.runtime.lastError.message);
+        return;
+      }
+      autoFilterSwitch.checked = response.autoFilter ?? false;
+    });
+  });
+
+  // Handle settings back button
+  settingsBackButton.addEventListener('click', () => {
+    console.log('[Popup] Closing settings view');
+    settingsView.classList.remove('active');
+    mainView.classList.add('active');
+  });
+
+  // Handle auto-filter toggle
+  autoFilterSwitch.addEventListener('change', (e) => {
+    console.log('[Popup] Auto-filter toggled:', e.target.checked);
+    chrome.runtime.sendMessage({ 
+      type: 'TOGGLE_FILTER_ON_DETECTION',
+      enabled: e.target.checked 
+    }, () => {
+      if (chrome.runtime.lastError) {
+        console.error('[Popup] Auto-filter toggle error:', chrome.runtime.lastError.message);
+      }
+    });
+  });
+
+  // ===== Support View Management =====
+  // Handle support button click
+  supportButton.addEventListener('click', () => {
+    console.log('[Popup] Opening support view');
     mainView.classList.remove('active');
     donateView.classList.add('active');
   });
 
-  // Add back button event listener
+  // Handle back button click
   backButton.addEventListener('click', () => {
+    console.log('[Popup] Closing support view');
     donateView.classList.remove('active');
     mainView.classList.add('active');
   });

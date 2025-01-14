@@ -14,10 +14,11 @@ import { isVideoPlayerURL } from './utils/VideoDetection.js';
 let detectedVideoTabs = new Map();
 
 // Extension settings with defaults
-let filterShortcut = ',';  // Default shortcut key
-let filterIntensity = 50;  // Default filter intensity
-let isExtensionEnabled = true; // Default to enabled
-let filterType = 'blur'; // Default filter type
+let isExtensionEnabled; // Default to enabled
+let filterShortcut;  // Default shortcut key
+let filterType; // Default filter type
+let filterIntensity;  // Default filter intensity
+let filterOnDetection; // Default filter on detection
 
 // ===== Initialization =====
 // Function to manage alarm
@@ -39,20 +40,12 @@ function updateIcon(enabled) {
 }
 
 // Load saved state and set up initial alarm
-chrome.storage.local.get(['filterShortcut', 'filterIntensity', 'isEnabled', 'filterType'], (result) => {
-  if (result.filterShortcut) {
-    filterShortcut = result.filterShortcut;
-    console.log('[Background] Loaded saved shortcut:', filterShortcut);
-  }
-  if (result.filterIntensity) {
-    filterIntensity = result.filterIntensity;
-    console.log('[Background] Loaded saved intensity:', filterIntensity);
-  }
-  if (result.filterType) {
-    filterType = result.filterType;
-    console.log('[Background] Loaded saved filter type:', filterType);
-  }
+chrome.storage.local.get(['filterShortcut', 'filterIntensity', 'isEnabled', 'filterType', 'filterOnDetection'], (result) => {
+  filterShortcut = result.filterShortcut ?? ',';
+  filterIntensity = result.filterIntensity ?? 50;
   isExtensionEnabled = result.isEnabled ?? true;
+  filterType = result.filterType ?? 'blur';
+  filterOnDetection = result.filterOnDetection ?? true;
   console.log('[Background] Loaded extension state:', isExtensionEnabled);
   updateAlarm(isExtensionEnabled); // Set initial alarm state
   updateIcon(isExtensionEnabled); // Set initial icon state
@@ -148,6 +141,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true;  // Keep message channel open
   }
 
+  if (message.type === 'GET_FILTER_ON_DETECTION') {
+    sendResponse({ autoFilter: filterOnDetection });
+    return true;
+  }
+
   // Special handling for TOGGLE_EXTENSION as it comes from popup
   if (message.type === 'TOGGLE_EXTENSION') {
     isExtensionEnabled = message.enabled;
@@ -188,6 +186,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true;
   }
 
+  if (message.type === 'TOGGLE_FILTER_ON_DETECTION') {
+    filterOnDetection = message.enabled;
+    chrome.storage.local.set({ filterOnDetection: filterOnDetection });
+    console.log('[Background] Filter on detection toggled to:', filterOnDetection);
+    return true;
+  }
+
   const tabId = sender.tab?.id;
   console.log('[Background] Processing message for tab:', tabId);
   
@@ -202,8 +207,18 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       // Initialize with both detected and blur state
       detectedVideoTabs.set(tabId, { 
         detected: true, 
-        filtered: false  // Initialize filter state
+        filtered: filterOnDetection  // Initialize filter state
       });
+
+      if (filterOnDetection) {
+        safeSendMessage(tabId, {
+          type: 'APPLY_FILTER',
+          shouldFilter: true,
+          intensity: filterIntensity,
+          filterType: filterType
+        });
+      }
+
       // Broadcast to popup
       safeBroadcast({ 
         type: 'VIDEO_DETECTED',
