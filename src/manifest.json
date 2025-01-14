@@ -11,22 +11,15 @@
     "storage",
     "alarms"
   ],
-  "host_permissions": [
-    "*://*.youtube.com/watch*",
-    "*://*.youtube.com/shorts*",
-    "*://*.netflix.com/watch*",
-    "*://*.primevideo.com/*detail*"
-  ],
   "background": {
     "service_worker": "background.js",
     "type": "module"
   },
   "content_scripts": [{
     "matches": [
-      "*://*.youtube.com/watch*",
-      "*://*.youtube.com/shorts*",
-      "*://*.netflix.com/watch*",
-      "*://*.primevideo.com/*detail*"
+      "*://*.youtube.com/*",
+      "*://*.netflix.com/*",
+      "*://*.primevideo.com/*"
     ],
     "js": ["content.js"]
   }],

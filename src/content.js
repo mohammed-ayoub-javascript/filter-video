@@ -39,10 +39,10 @@ function getVideoElement(url=window.location.href) {
   if (!handling) return null;
   
   if (handling === 2) {
-    const videos = document.querySelectorAll('video');
+    const videos = document.querySelectorAll('video[src]');
     return videos.length > 1 ? videos[1] : null;
   }
-  return document.querySelector('video');
+  return document.querySelector('video[src]');
 }
 
 // Helper function for safe runtime operations
@@ -80,11 +80,11 @@ function checkForVideo() {
   
   let video;
   if (handling === 2) {
-    const videos = document.querySelectorAll('video');
+    const videos = document.querySelectorAll('video[src]');
     console.log('[Content] Found', videos.length, 'videos');
     video = videos.length > 1 ? videos[1] : null;
   } else {
-    video = document.querySelector('video');
+    video = document.querySelector('video[src]');
   }
   
   if (video) {
@@ -92,7 +92,7 @@ function checkForVideo() {
     safeRuntime(() => {
       chrome.runtime.sendMessage({ type: 'VIDEO_DETECTED' });
       lastDetectionTime = currentTime;
-      videoDetectionAttempts = MAX_ATTEMPTS;
+      videoDetectionAttempts = 0;  // Reset attempts when video is found
       attachFilterToggle(video);
     });
     return true;
@@ -198,6 +198,22 @@ chrome.runtime.onMessage.addListener((message) => {
       console.log('[Content] No video found for shortcut update');
     }
   }
+
+  if (message.type === 'DETECTION_READY') {
+    console.log('[Content] Detection ready signal received');
+    if (isVideoPlayerURL(window.location.href)) {
+      videoDetectionAttempts = 0;
+      setTimeout(checkForVideo, 1000);
+    }
+  }
+
+  if (message.type === 'PAGE_READY') {
+    console.log('[Content] Page ready signal received');
+    if (isVideoPlayerURL(window.location.href)) {
+      videoDetectionAttempts = 0;
+      setTimeout(checkForVideo, 1000);
+    }
+  }
 });
 
 // ===== URL Change Detection =====
@@ -207,11 +223,7 @@ new MutationObserver(() => {
   if (currentUrl !== lastUrl) {
     console.log('[Content] URL changed from:', lastUrl, 'to:', currentUrl);
     lastUrl = currentUrl;
-    // Only reset and check if it's a video page
-    if (isVideoPlayerURL(currentUrl)) {
-      videoDetectionAttempts = 0;
-      setTimeout(checkForVideo, 1000);
-    }
+    // Don't start detection here - wait for background signal
   }
 }).observe(document, {subtree: true, childList: true});
 

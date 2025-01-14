@@ -102,16 +102,24 @@ chrome.tabs.onActivated.addListener(async (activeInfo) => {
 
 // Handle URL changes within the same tab
 chrome.webNavigation.onHistoryStateUpdated.addListener((details) => {
-  // If NOT a video page, we should delete the entry
-  if (!isVideoPlayerURL(details.url)) {
-    console.log('[URL Change] Not a video page:', details.url);
-    detectedVideoTabs.delete(details.tabId);
-    // Notify about video status change
-    safeBroadcast({ 
-      type: 'VIDEO_STATUS_CHANGED',
-      tabId: details.tabId,
-      hasVideo: false 
-    });
+  if (details.frameId === 0) { // Only handle main frame updates
+    // If NOT a video page, we should delete the entry
+    if (!isVideoPlayerURL(details.url)) {
+      console.log('[URL Change] Not a video page:', details.url);
+      detectedVideoTabs.delete(details.tabId);
+      // Notify about video status change
+      safeBroadcast({ 
+        type: 'VIDEO_STATUS_CHANGED',
+        tabId: details.tabId,
+        hasVideo: false 
+      });
+    } else {
+      // Only send PAGE_READY for video pages
+      console.log('[URL Change] Video page detected, sending PAGE_READY');
+      chrome.tabs.sendMessage(details.tabId, { type: 'PAGE_READY' }).catch(error => {
+        console.log('[URL Change] Could not send PAGE_READY - normal for non-video pages');
+      });
+    }
   }
 });
 
