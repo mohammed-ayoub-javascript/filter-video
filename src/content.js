@@ -207,8 +207,8 @@ chrome.runtime.onMessage.addListener((message) => {
     }
   }
 
-  if (message.type === 'PAGE_READY') {
-    console.log('[Content] Page ready signal received');
+  if (message.type === 'DETECTION_READY') {
+    console.log('[Content] Detection ready signal received');
     if (isVideoPlayerURL(window.location.href)) {
       videoDetectionAttempts = 0;
       setTimeout(checkForVideo, 1000);

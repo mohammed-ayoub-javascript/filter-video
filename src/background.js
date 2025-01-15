@@ -41,10 +41,10 @@ function updateIcon(enabled) {
 
 // Load saved state and set up initial alarm
 chrome.storage.local.get(['filterShortcut', 'filterIntensity', 'isEnabled', 'filterType', 'filterOnDetection'], (result) => {
-  filterShortcut = result.filterShortcut ?? ',';
-  filterIntensity = result.filterIntensity ?? 50;
   isExtensionEnabled = result.isEnabled ?? true;
+  filterShortcut = result.filterShortcut ?? ',';
   filterType = result.filterType ?? 'blur';
+  filterIntensity = result.filterIntensity ?? 50;
   filterOnDetection = result.filterOnDetection ?? true;
   console.log('[Background] Loaded extension state:', isExtensionEnabled);
   updateAlarm(isExtensionEnabled); // Set initial alarm state
@@ -107,10 +107,10 @@ chrome.webNavigation.onHistoryStateUpdated.addListener((details) => {
         hasVideo: false 
       });
     } else {
-      // Only send PAGE_READY for video pages
-      console.log('[URL Change] Video page detected, sending PAGE_READY');
-      chrome.tabs.sendMessage(details.tabId, { type: 'PAGE_READY' }).catch(error => {
-        console.log('[URL Change] Could not send PAGE_READY - normal for non-video pages');
+      // Only send DETECTION_READY for video pages
+      console.log('[URL Change] Video page detected, sending DETECTION_READY');
+      chrome.tabs.sendMessage(details.tabId, { type: 'DETECTION_READY' }).catch(error => {
+        console.log('[URL Change] Could not send DETECTION_READY - normal for non-video pages');
       });
     }
   }
