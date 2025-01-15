@@ -11,7 +11,7 @@ import { isVideoPlayerURL } from './utils/VideoDetection.js';
 
 // ===== State Management =====
 let videoDetectionAttempts = 0;
-const MAX_ATTEMPTS = 30;
+const MAX_ATTEMPTS = 60;
 let lastDetectionTime = 0;
 const DETECTION_COOLDOWN = 1000; // 1 second cooldown between detections
 let filterListenerAttached = false;
@@ -39,7 +39,7 @@ function getVideoElement(url=window.location.href) {
 
   switch (handling) {
     case 1: // Normal video player (YouTube, Netflix)
-      return document.querySelector('video[src]');
+      return document.querySelector('video');
     case 2: // Prime Video
       const videos = document.querySelectorAll('video[src]');
       return videos.length > 1 ? videos[1] : null;
