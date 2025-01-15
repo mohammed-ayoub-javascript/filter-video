@@ -1,10 +1,6 @@
 # FilterVideo
 
-A web extension that enhances your control while watching videos,
-by allowing you to apply customizable filters to videos on popular streaming platforms, using a keyboard shortcut of your choice.
-
-Currently supports blur and opacity filters on YouTube, Netflix,
-and Prime Video platforms.
+We detect the video, You apply the filter (blur/opacity) using a customizable keyboard shortcut.
 
 ## Features
 
@@ -15,6 +11,7 @@ and Prime Video platforms.
   - YouTube
   - Netflix
   - Amazon Prime Video
+  - Other platforms (iframe detection)
 - Global enable/disable switch
 - Persistent settings across browser sessions
 
@@ -57,7 +54,7 @@ and Prime Video platforms.
 
 1. Click the FilterVideo icon in your browser toolbar
 2. Use the toggle switch to enable/disable the extension
-3. Choose your preferred shortcut key (default: ',')
+3. Choose your preferred shortcut key (default: ',') because it's close to 'm' which is the mute shortcut, so you can mute and apply filter with close proximity.
 4. Adjust filter intensity using the slider
 5. Press the shortcut key while watching a video to toggle the filter
 

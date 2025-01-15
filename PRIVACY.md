@@ -14,10 +14,11 @@ FilterVideo does not collect, store, or transmit any personal data. The extensio
 
 The only data stored by FilterVideo are your extension preferences:
 
+- Extension enabled/disabled state
+- Keyboard shortcut preference
 - Filter type (blur/opacity)
 - Filter intensity level
-- Keyboard shortcut preference
-- Extension enabled/disabled state
+- Filter on detection preference
 
 These settings are stored locally in your browser using Chrome's storage API and are never transmitted externally.
 
@@ -30,10 +31,13 @@ The extension requires certain permissions to function:
 - storage: To save your preferences locally
 - alarms: To maintain extension functionality during long sessions
 
+## Content Script
+
+- Content script runs on all pages to handle supported platforms (video detection) and non-supported platforms (iframe detection as a fallback)
+
 ## Third-Party Access
 
-- We do not share any data with third parties
-- We do not collect or transmit any information to external servers
+- We do not collect or share any data with anyone
 - All extension functionality occurs locally in your browser
 
 ## Updates and Changes
@@ -44,6 +48,8 @@ Any updates to this privacy policy will be reflected in the extension's Chrome W
 
 If you have any questions about this privacy policy or the extension's privacy practices, please contact us through GitHub issues at:
 https://github.com/bengmoh/filter-video/issues
+or through the form:
+https://forms.gle/muGcKNufR2XzAnVV9
 
 ## Source Code
 
