@@ -39,7 +39,7 @@ function getVideoElement(url=window.location.href) {
 
   switch (handling) {
     case 1: // Normal video player (YouTube, Netflix)
-      return document.querySelector('video');
+      return document.querySelector('video[src]');
     case 2: // Prime Video
       const videos = document.querySelectorAll('video[src]');
       return videos.length > 1 ? videos[1] : null;

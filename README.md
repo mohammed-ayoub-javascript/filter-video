@@ -1,17 +1,22 @@
 # FilterVideo
 
-We detect the video, You apply the filter (blur/opacity) using a customizable keyboard shortcut.
+Web extension that detects the video, and allows you to apply the filter (blur/opacity) using a customizable keyboard shortcut.
+
+# FilterVideo
+
+Filter videos with customizable keyboard shortcuts. Perfect for content sensitivity management on YouTube, Netflix, Prime Video, and other platforms.
 
 ## Features
 
 - Video filters with customizable keyboard shortcut:
-  - Blur filter with adjustable intensity
-  - Opacity filter with adjustable level
-- Support for multiple streaming platforms:
+  - Blur filter with adjustable intensity (1-100%)
+  - Opacity filter with adjustable level (1-100%)
+- Auto-filter on video detection (optional)
+- Support for multiple platforms:
   - YouTube
   - Netflix
   - Amazon Prime Video
-  - Other platforms (iframe detection)
+  - Other platforms via iframe detection
 - Global enable/disable switch
 - Persistent settings across browser sessions
 
@@ -19,9 +24,9 @@ We detect the video, You apply the filter (blur/opacity) using a customizable ke
 
 ### From Chrome Web Store
 
-1. Visit the [Chrome Web Store page](https://chrome.google.com/webstore/)
-2. Search for "FilterVideo" and click on the extension
-3. Click "Add to Chrome"
+1. Visit the [FilterVideo Chrome Web Store page](https://chromewebstore.google.com/detail/filtervideo/gchjhchmcjnphmbkmllgfalidiakaoea)
+2. Read the description and reviews
+3. Click "Add to Chrome" if you're happy with the extension or just want to try it out
 
 ### From Source
 
@@ -29,6 +34,52 @@ We detect the video, You apply the filter (blur/opacity) using a customizable ke
 2. Open Chrome and navigate to `chrome://extensions`
 3. Enable "Developer mode"
 4. Click "Load unpacked" and select the `src` directory
+
+## Usage
+
+1. Click the FilterVideo icon in your browser toolbar
+2. Use the toggle switch to enable/disable the extension
+3. Choose your preferred shortcut key
+   - Default: ',' (recommended as it's close to 'm' for mute)
+4. Adjust filter intensity using the slider
+5. Press the shortcut key while watching a video to toggle the filter
+
+### Platform-Specific Behavior
+
+#### Mainstream Platforms (YouTube, Netflix, Prime Video, Disney Plus)
+
+- Full functionality with keyboard shortcuts working everywhere
+- Filter toggles work seamlessly
+- Auto-filter option available
+
+#### Other Platforms (iframe detection)
+
+Important: Due to cross-origin security, there are some limitations:
+
+- Keyboard shortcut only work when focus is outside the video frame
+- To use effectively:
+  1. Zoom the page if needed (two-finger gesture) but don't toggle full screen
+  2. Click just outside the video frame to ensure the shortcut works
+  3. Consider using a shortcut key near your device's mute button for easier control. For example, '-' is close to the mute button on Mac.
+
+"Auto-Filter on Detection" in settings:
+
+- Videos will automatically be filtered when detected
+- Then you can toggle filter manually using the shortcut key
+
+## Troubleshooting
+
+### Shortcut Not Working
+
+1. Check if extension is enabled
+2. Try refreshing the page
+3. If platform uses iframe, try clicking outside the iframe, and then press the shortcut key.
+
+### Video Not Detected
+
+1. Refresh the page
+2. Disable and re-enable the extension
+3. Reload the extension from chrome://extensions
 
 ### Development
 
@@ -50,31 +101,27 @@ We detect the video, You apply the filter (blur/opacity) using a customizable ke
    ```
    This will create a production build in the `dist` directory and a ZIP file ready for the Chrome Web Store.
 
-## Usage
-
-1. Click the FilterVideo icon in your browser toolbar
-2. Use the toggle switch to enable/disable the extension
-3. Choose your preferred shortcut key (default: ',') because it's close to 'm' which is the mute shortcut, so you can mute and apply filter with close proximity.
-4. Adjust filter intensity using the slider
-5. Press the shortcut key while watching a video to toggle the filter
-
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
 
-## Permissions Explanation
+## Privacy & Permissions
 
-The extension requires the following permissions:
+The extension requires minimal permissions:
 
-- `tabs`: Required to detect video players and apply filters
-- `webNavigation`: Needed to track URL changes for video detection
-- `storage`: Used to save user preferences
-- `alarms`: Used to keep the service worker active for consistent functionality
+- `tabs`: For video detection
+- `webNavigation`: For URL change tracking
+- `storage`: For saving preferences
+- `alarms`: For consistent functionality
 
-## Privacy
+We do not:
 
-This extension:
+- Collect any user data
+- Make external network requests
+- Process any video content
 
-- Does not collect any user data
-- Does not make any external network requests
-- All processing happens locally in your browser
+## Support
+
+- Issues: [GitHub Issues](https://github.com/bengmoh/filter-video/issues)
+- Feedback: [Feedback Form](https://forms.gle/muGcKNufR2XzAnVV9)
+- Source: [GitHub Repository](https://github.com/bengmoh/filter-video)

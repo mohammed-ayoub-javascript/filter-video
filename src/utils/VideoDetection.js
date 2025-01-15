@@ -3,7 +3,7 @@
 const SUPPORTED_PLATFORMS = ['www.youtube.com','www.netflix.com', 'www.primevideo.com', 'www.disneyplus.com'];
 
 export function isVideoPlayerURL(url) {
-    if (isYouTube(url) || isNetflix(url) || isDisneyPlus(url) || isTikTok(url)) {
+    if (isYouTube(url) || isNetflix(url) || isDisneyPlus(url)) {
       return 1;
     }
     
@@ -26,10 +26,6 @@ function isNetflix(url) {
 
 function isDisneyPlus(url) {
     return url.includes('disneyplus.com') && url.includes('play');
-}
-
-export function isTikTok(url) {
-    return url.includes('tiktok.com') && url.includes('foryou');
 }
 
 function isPrimeVideo(url) {
