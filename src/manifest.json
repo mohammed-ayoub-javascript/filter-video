@@ -16,11 +16,7 @@
     "type": "module"
   },
   "content_scripts": [{
-    "matches": [
-      "*://*.youtube.com/*",
-      "*://*.netflix.com/*",
-      "*://*.primevideo.com/*"
-    ],
+    "matches": ["<all_urls>"],
     "js": ["content.js"]
   }],
   "icons": {

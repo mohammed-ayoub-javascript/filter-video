@@ -36,13 +36,18 @@ chrome.runtime.sendMessage({ type: 'GET_IS_ENABLED' }, (response) => {
 function getVideoElement(url=window.location.href) {
   if (!isExtensionEnabled) return null;
   const handling = isVideoPlayerURL(url);
-  if (!handling) return null;
-  
-  if (handling === 2) {
-    const videos = document.querySelectorAll('video[src]');
-    return videos.length > 1 ? videos[1] : null;
+
+  switch (handling) {
+    case 1: // Normal video player (YouTube, Netflix)
+      return document.querySelector('video[src]');
+    case 2: // Prime Video
+      const videos = document.querySelectorAll('video[src]');
+      return videos.length > 1 ? videos[1] : null;
+    case 3: // Iframe detection for non supported platforms
+      return document.querySelector('iframe[allowfullscreen]');
+    default:
+      return null;
   }
-  return document.querySelector('video[src]');
 }
 
 // Helper function for safe runtime operations
@@ -60,8 +65,7 @@ function safeRuntime(callback) {
 
 // ===== Video Detection =====
 function checkForVideo() {
-  if (!isExtensionEnabled) return;
-  const currentUrl = window.location.href;
+  if (!isExtensionEnabled) return null;
   const currentTime = Date.now();
   
   // Prevent detection if we're within cooldown period
@@ -70,22 +74,9 @@ function checkForVideo() {
     return;
   }
   
-  let handling = isVideoPlayerURL(currentUrl);
-  if (!handling) {
-    console.log('[Content] Not a video page:', currentUrl);
-    return;
-  }
-
-  console.log('[Content] Checking for video on:', currentUrl, 'handling:', handling);
+  console.log('[Content] Checking for video on:', window.location.href);
   
-  let video;
-  if (handling === 2) {
-    const videos = document.querySelectorAll('video[src]');
-    console.log('[Content] Found', videos.length, 'videos');
-    video = videos.length > 1 ? videos[1] : null;
-  } else {
-    video = document.querySelector('video[src]');
-  }
+  let video = getVideoElement(); 
   
   if (video) {
     console.log('[Content] Video found:', video);
@@ -196,14 +187,6 @@ chrome.runtime.onMessage.addListener((message) => {
       console.log('[Content] Attached new shortcut listener');
     } else {
       console.log('[Content] No video found for shortcut update');
-    }
-  }
-
-  if (message.type === 'DETECTION_READY') {
-    console.log('[Content] Detection ready signal received');
-    if (isVideoPlayerURL(window.location.href)) {
-      videoDetectionAttempts = 0;
-      setTimeout(checkForVideo, 1000);
     }
   }
 
