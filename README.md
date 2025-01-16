@@ -2,10 +2,6 @@
 
 Web extension that detects the video, and allows you to apply the filter (blur/opacity) using a customizable keyboard shortcut.
 
-# FilterVideo
-
-Filter videos with customizable keyboard shortcuts. Perfect for content sensitivity management on YouTube, Netflix, Prime Video, and other platforms.
-
 ## Features
 
 - Video filters with customizable keyboard shortcut:
@@ -16,24 +12,44 @@ Filter videos with customizable keyboard shortcuts. Perfect for content sensitiv
   - YouTube
   - Netflix
   - Amazon Prime Video
+  - Disney Plus
   - Other platforms via iframe detection
 - Global enable/disable switch
 - Persistent settings across browser sessions
 
 ## Installation
 
-### From Chrome Web Store
+### For Chrome
+
+#### From Chrome Web Store
 
 1. Visit the [FilterVideo Chrome Web Store page](https://chromewebstore.google.com/detail/filtervideo/gchjhchmcjnphmbkmllgfalidiakaoea)
 2. Read the description and reviews
 3. Click "Add to Chrome" if you're happy with the extension or just want to try it out
 
-### From Source
+#### From Source
 
 1. Clone this repository
 2. Open Chrome and navigate to `chrome://extensions`
 3. Enable "Developer mode"
 4. Click "Load unpacked" and select the `src` directory
+
+### For Firefox
+
+#### From Firefox Add-ons
+
+1. Visit the [FilterVideo Firefox Add-ons page](https://addons.mozilla.org/en-US/firefox/addon/filtervideo/)
+2. Read the description and reviews
+3. Click "Add to Firefox" if you're happy with the extension or just want to try it out
+
+#### From Source
+
+1. Clone this repository
+2. mv firefox/manifest.json src/manifest.json
+3. Open Firefox and navigate to `about:debugging`
+4. Click "This Firefox"
+5. Click "Load Temporary Add-on"
+6. Select the `src` directory
 
 ## Usage
 
@@ -96,10 +112,14 @@ Important: Due to cross-origin security, there are some limitations:
    ```
 
 3. Build for production:
+
    ```bash
    npm run package
    ```
+
    This will create a production build in the `dist` directory and a ZIP file ready for the Chrome Web Store.
+
+   -> For Firefox, you need to 'mv firefox/manifest.json src/manifest.json' and then run the same command.
 
 ## Contributing
 
@@ -122,6 +142,7 @@ We do not:
 
 ## Support
 
+- email: [elamine.beng@gmail.com](mailto:elamine.beng@gmail.com)
 - Issues: [GitHub Issues](https://github.com/bengmoh/filter-video/issues)
 - Feedback: [Feedback Form](https://forms.gle/muGcKNufR2XzAnVV9)
 - Source: [GitHub Repository](https://github.com/bengmoh/filter-video)
