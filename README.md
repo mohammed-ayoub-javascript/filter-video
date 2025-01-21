@@ -30,9 +30,10 @@ Web extension that detects the video, and allows you to apply the filter (blur/o
 #### From Source
 
 1. Clone this repository
-2. Open Chrome and navigate to `chrome://extensions`
-3. Enable "Developer mode"
-4. Click "Load unpacked" and select the `src` directory
+2. Run `npm install` then `npm run dev` in the root directory
+3. Open Chrome and navigate to `chrome://extensions`
+4. Enable "Developer mode"
+5. Click "Load unpacked" and select the `dist` directory
 
 ### For Firefox
 
@@ -45,11 +46,12 @@ Web extension that detects the video, and allows you to apply the filter (blur/o
 #### From Source
 
 1. Clone this repository
-2. mv firefox/manifest.json src/manifest.json
-3. Open Firefox and navigate to `about:debugging`
-4. Click "This Firefox"
-5. Click "Load Temporary Add-on"
-6. Select the `src` directory
+2. Run `mv firefox/manifest.json src/manifest.json` to replace chrome manifest with firefox manifest
+3. Run `npm install` then `npm run dev` in the root directory
+4. Open Firefox and navigate to `about:debugging`
+5. Click "This Firefox"
+6. Click "Load Temporary Add-on"
+7. Select the `dist` directory
 
 ## Usage
 
