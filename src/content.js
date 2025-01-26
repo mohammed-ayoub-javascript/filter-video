@@ -19,15 +19,9 @@ let isExtensionEnabled = true; // Default to true
 let currentKeydownHandler = null; // Store keydown handler reference for removal
 
 // ===== Initialization =====
-
-if (isVideoPlayerURL(window.location.href)) {
-  videoDetectionAttempts = 0;
-  setTimeout(checkForVideo, 1000);
-}
-
 // Get initial extension state
 chrome.runtime.sendMessage({ type: 'GET_IS_ENABLED' }, (response) => {
-  isExtensionEnabled = response?.isEnabled ?? true;
+  isExtensionEnabled = response?.isEnabled;
   console.log('[Content] Extension state:', isExtensionEnabled);
 });
 
@@ -38,13 +32,32 @@ function getVideoElement(url=window.location.href) {
   const handling = isVideoPlayerURL(url);
 
   switch (handling) {
-    case 1: // Normal video player (YouTube, Netflix)
+    case -1: // Iframe detection for non supported platforms
+      return document.querySelector('iframe[allowfullscreen]');
+    case 1: // First handling platform
       return document.querySelector('video[src]');
-    case 2: // Prime Video
+    case 2: // Second handling platform
       const videos = document.querySelectorAll('video[src]');
       return videos.length > 1 ? videos[1] : null;
-    case 3: // Iframe detection for non supported platforms
-      return document.querySelector('iframe[allowfullscreen]');
+    case 3: // TikTok special handling
+      // First try to find active article (/foryou route)
+      const container = document.querySelector('article[style=""]');
+      const video = container?.querySelector('video') || document.querySelector('video');
+
+      if (video) {
+        // Go up three levels to find the container
+        const videoContainer = video.parentElement?.parentElement?.parentElement;
+        if (videoContainer) {
+          // Remove background span
+          const bgSpan = videoContainer.querySelector('span[style*="box-sizing: border-box"][style*="display: block"][style*="position: absolute"][style*="inset: 0px"]');
+          if (bgSpan) {
+            console.log('[Content] Found and removing TikTok background span in video container');
+            bgSpan.remove();
+          }
+        }
+        return video;
+      }
+      return null;
     default:
       return null;
   }
@@ -104,7 +117,7 @@ function attachFilterToggle(video, key = null) {
   
   const setupListener = (shortcutKey) => {
     currentKeydownHandler = (e) => {
-      if (e.key.toLowerCase() === shortcutKey.toLowerCase() && isExtensionEnabled) {
+      if (isExtensionEnabled && e.key.toLowerCase() === shortcutKey.toLowerCase()) {
         chrome.runtime.sendMessage({ type: 'TOGGLE_FILTER' });
       }
     };

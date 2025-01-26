@@ -122,8 +122,12 @@ chrome.webNavigation.onCompleted.addListener((details) => {
     console.log('[Page Load] Page loaded:', details.url);
     if (!isVideoPlayerURL(details.url)) {
       console.log('[Page Load] Not a video page:', details.url);
+      detectedVideoTabs.delete(details.tabId);
+    } else {
+      // Send DETECTION_READY for video pages on load
+      console.log('[Page Load] Video page detected, sending DETECTION_READY');
+      safeSendMessage(details.tabId, { type: 'DETECTION_READY' });
     }
-    detectedVideoTabs.delete(details.tabId);
   }
 });
 
