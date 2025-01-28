@@ -1,5 +1,5 @@
 import { isVideoPlayerURL } from './utils/VideoDetection.js';
-
+import { getEquivalentKey } from './utils/KeyMapping.js';
 /**
  * Content Script: Handles video detection and blur functionality
  * Responsibilities:
@@ -13,11 +13,13 @@ import { isVideoPlayerURL } from './utils/VideoDetection.js';
 let videoDetectionAttempts = 0;
 const MAX_ATTEMPTS = 60;
 let lastDetectionTime = 0;
-const DETECTION_COOLDOWN = 400; // 0.4 second cooldown between detections
+const DETECTION_COOLDOWN = 200; // 0.2 second cooldown between detections
 let filterListenerAttached = false;
 let isExtensionEnabled = true; // Default to true
 let currentKeydownHandler = null; // Store keydown handler reference for removal
 let videoElement = null;
+let currentLayout = "QWERTY";
+let equivalentKey = null;
 
 // ===== Initialization =====
 // Get initial extension state
@@ -149,8 +151,10 @@ function attachFilterToggle(videoElement, key = null) {
   if (filterListenerAttached) return;
   
   const setupListener = (shortcutKey) => {
+    shortcutKey = shortcutKey.toLowerCase();
     currentKeydownHandler = (e) => {
-      if (isExtensionEnabled && e.key.toLowerCase() === shortcutKey.toLowerCase()) {
+      equivalentKey = getEquivalentKey(shortcutKey, currentLayout);
+      if (isExtensionEnabled && (e.key.toLowerCase() === shortcutKey || e.key.toLowerCase() === equivalentKey)) {
         e.preventDefault(); // Only prevent default for our shortcut key
         chrome.runtime.sendMessage({ type: 'TOGGLE_FILTER' });
       }
