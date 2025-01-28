@@ -13,16 +13,21 @@ import { isVideoPlayerURL } from './utils/VideoDetection.js';
 let videoDetectionAttempts = 0;
 const MAX_ATTEMPTS = 60;
 let lastDetectionTime = 0;
-const DETECTION_COOLDOWN = 1000; // 1 second cooldown between detections
+const DETECTION_COOLDOWN = 400; // 0.4 second cooldown between detections
 let filterListenerAttached = false;
 let isExtensionEnabled = true; // Default to true
 let currentKeydownHandler = null; // Store keydown handler reference for removal
+let videoElement = null;
 
 // ===== Initialization =====
 // Get initial extension state
 chrome.runtime.sendMessage({ type: 'GET_IS_ENABLED' }, (response) => {
   isExtensionEnabled = response?.isEnabled;
   console.log('[Content] Extension state:', isExtensionEnabled);
+  if (isExtensionEnabled && isVideoPlayerURL(location.href)) {
+    videoDetectionAttempts = 0;
+    setTimeout(checkForVideo, 500);
+  }
 });
 
 // ===== Helper Functions =====
@@ -33,7 +38,8 @@ function getVideoElement(url=window.location.href) {
 
   switch (handling) {
     case -1: // Iframe detection for non supported platforms
-      return document.querySelector('iframe[allowfullscreen]');
+      // it has to have allowfullscreen attribute and src attribute must NOT include 'youtube' (avoid trailers)
+      return document.querySelector('iframe[src][allowfullscreen]');
     case 1: // First handling platform
       return document.querySelector('video[src]');
     case 2: // Second handling platform
@@ -56,6 +62,21 @@ function getVideoElement(url=window.location.href) {
           }
         }
         return video;
+      }
+      return null;
+    case 4: // Instagram Reels special handling
+      // Find the active image (one with xuzhngd class)
+      const activeImg = document.querySelector('img.xz74otr.xuzhngd');
+      if (activeImg) {
+        // Go up to find the parent container and then find the video element
+        const reelContainer = activeImg.parentElement;
+        if (reelContainer) {
+          const reelVideo = reelContainer.querySelector('video');
+          if (reelVideo) {
+            console.log('[Content] Found Instagram Reel video element');
+            return reelVideo;
+          }
+        }
       }
       return null;
     default:
@@ -89,15 +110,16 @@ function checkForVideo() {
   
   console.log('[Content] Checking for video on:', window.location.href);
   
-  let video = getVideoElement(); 
+  const video = getVideoElement(); 
   
   if (video) {
-    console.log('[Content] Video found:', video);
+    videoElement = video;
+    console.log('[Content] Video found:', videoElement);
     safeRuntime(() => {
       chrome.runtime.sendMessage({ type: 'VIDEO_DETECTED' });
       lastDetectionTime = currentTime;
       videoDetectionAttempts = 0;  // Reset attempts when video is found
-      attachFilterToggle(video);
+      attachFilterToggle(videoElement);
     });
     return true;
   }
@@ -112,7 +134,7 @@ function checkForVideo() {
 }
 
 // ===== Filter Management =====
-function attachFilterToggle(video, key = null) {
+function attachFilterToggle(videoElement, key = null) {
   if (filterListenerAttached) return;
   
   const setupListener = (shortcutKey) => {
@@ -154,17 +176,17 @@ chrome.runtime.onMessage.addListener((message) => {
       videoDetectionAttempts = 0;
       const video = getVideoElement();
       if (video) {
+        videoElement = video;
         // If video exists, attach listener immediately
-        attachFilterToggle(video);
+        attachFilterToggle(videoElement);
       }
-      setTimeout(checkForVideo, 1000); // Start detection
+      setTimeout(checkForVideo, 500); // Start detection
     }
   }
 
   if (message.type === 'APPLY_FILTER') {
-    console.log('[Content] Applying filter:', message);
-    const video = getVideoElement();
-    if (video) {
+    if (videoElement) {
+      console.log('[Content] Applying filter:', message);
       let filterValue = '';
       if (message.shouldFilter) {
         switch (message.filterType) {
@@ -176,8 +198,8 @@ chrome.runtime.onMessage.addListener((message) => {
             break;
         }
       }
-      video.style.filter = filterValue;
-      console.log('[Content] Video filter set to:', video.style.filter);
+      videoElement.style.filter = filterValue;
+      console.log('[Content] Video filter set to:', videoElement.style.filter);
     } else {
       console.log('[Content] No video found to apply filter');
     }
@@ -196,7 +218,8 @@ chrome.runtime.onMessage.addListener((message) => {
     // Re-attach with new key if we have a video
     const video = getVideoElement();
     if (video) {
-      attachFilterToggle(video, message.key);
+      videoElement = video;
+      attachFilterToggle(videoElement, message.key);
       console.log('[Content] Attached new shortcut listener');
     } else {
       console.log('[Content] No video found for shortcut update');
@@ -205,9 +228,9 @@ chrome.runtime.onMessage.addListener((message) => {
 
   if (message.type === 'DETECTION_READY') {
     console.log('[Content] Detection ready signal received');
-    if (isVideoPlayerURL(window.location.href)) {
+    if (isVideoPlayerURL(location.href)) {
       videoDetectionAttempts = 0;
-      setTimeout(checkForVideo, 1000);
+      setTimeout(checkForVideo, 500);
     }
   }
 });
@@ -219,7 +242,11 @@ new MutationObserver(() => {
   if (currentUrl !== lastUrl) {
     console.log('[Content] URL changed from:', lastUrl, 'to:', currentUrl);
     lastUrl = currentUrl;
-    // Don't start detection here - wait for background signal
+    // Don't start detection here (unless Instagram Reels) - wait for background signal
+    if (isVideoPlayerURL(currentUrl) === 4) {
+      videoDetectionAttempts = 0;
+      setTimeout(checkForVideo, 200);
+    }
   }
 }).observe(document, {subtree: true, childList: true});
 

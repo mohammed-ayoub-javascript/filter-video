@@ -1,14 +1,14 @@
 // ===== Video Detection Utils =====
 
-const SUPPORTED_PLATFORMS = ['www.youtube.com','www.netflix.com', 'www.primevideo.com', 'www.disneyplus.com'];
+const SUPPORTED_PLATFORMS = ['www.youtube.com', 'www.netflix.com', 'www.primevideo.com', 'www.disneyplus.com', 'www.instagram.com', 'www.tiktok.com', 'www.zeteo.com', 'www.coursera.org'];
 
-const firstHandlingCheckers = [youtube, netflix, disney, coursera, zeteo];
-const secondHandlingCheckers = [prime];
+const firstHandlingCheckers = [youtube, netflix, disneyplus, coursera, zeteo];
+const secondHandlingCheckers = [primevideo];
 
 /**
  * Check if the URL is a video player URL
  * @param {string} url - The URL to check
- * @returns {number} - 0: no video player, 1: first handling platform, 2: second handling platform, 3: tiktok (special handling), -1: iframe
+ * @returns {number} - 0: no video player, 1: first handling platform, 2: second handling platform, 3: tiktok (special handling), 4: instagram reels (special handling), -1: iframe
  */
 export function isVideoPlayerURL(url) {
     
@@ -19,7 +19,12 @@ export function isVideoPlayerURL(url) {
     // Special case for TikTok
     if (tiktok(url)) return 3;
     
-    url = url.split('/')[2]; // Get the domain
+    // Special case for Instagram Reels
+    if (instagramReels(url)) return 4;
+    
+    // get domain name
+    url = url.split('/')[2];
+    console.log(url);
     return SUPPORTED_PLATFORMS.includes(url) ? 0 : -1; // If the domain is in the supported platforms, return 0 (no video player), else return -1 (iframe)
 }
 
@@ -32,7 +37,7 @@ function netflix(url) {
     return url.includes('netflix.com/watch') && !url.includes('miniDpPlayButton');
 }
 
-function disney(url) {
+function disneyplus(url) {
     return url.includes('disneyplus.com') && url.includes('play');
 }
 
@@ -48,6 +53,10 @@ function tiktok(url) {
     return url.includes('tiktok.com');
 }
 
-function prime(url) {
+function primevideo(url) {
     return url.includes('primevideo.com') && url.includes('detail');
+}
+
+function instagramReels(url) {
+    return url.includes('instagram.com/reels');
 }

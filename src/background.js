@@ -106,27 +106,14 @@ chrome.webNavigation.onHistoryStateUpdated.addListener((details) => {
         tabId: details.tabId,
         hasVideo: false 
       });
+    } else if (isVideoPlayerURL(details.url) === 4) {
+      console.log('[URL Change] Skipping detection ready for Instagram Reels');
     } else {
       // Only send DETECTION_READY for video pages
       console.log('[URL Change] Video page detected, sending DETECTION_READY');
       chrome.tabs.sendMessage(details.tabId, { type: 'DETECTION_READY' }).catch(error => {
         console.log('[URL Change] Could not send DETECTION_READY - normal for non-video pages');
       });
-    }
-  }
-});
-
-// Handle page refresh
-chrome.webNavigation.onCompleted.addListener((details) => {
-  if (details.frameId === 0) {
-    console.log('[Page Load] Page loaded:', details.url);
-    if (!isVideoPlayerURL(details.url)) {
-      console.log('[Page Load] Not a video page:', details.url);
-      detectedVideoTabs.delete(details.tabId);
-    } else {
-      // Send DETECTION_READY for video pages on load
-      console.log('[Page Load] Video page detected, sending DETECTION_READY');
-      safeSendMessage(details.tabId, { type: 'DETECTION_READY' });
     }
   }
 });
