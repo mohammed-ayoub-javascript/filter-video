@@ -45,7 +45,7 @@ chrome.storage.local.get(['filterShortcut', 'filterIntensity', 'isEnabled', 'fil
   filterShortcut = result.filterShortcut ?? ',';
   filterType = result.filterType ?? 'blur';
   filterIntensity = result.filterIntensity ?? 50;
-  filterOnDetection = result.filterOnDetection ?? true;
+  filterOnDetection = result.filterOnDetection ?? false;
   console.log('[Background] Loaded extension state:', isExtensionEnabled);
   updateAlarm(isExtensionEnabled); // Set initial alarm state
   updateIcon(isExtensionEnabled); // Set initial icon state
