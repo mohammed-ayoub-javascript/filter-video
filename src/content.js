@@ -115,6 +115,8 @@ function checkForVideo() {
   if (video) {
     videoElement = video;
     console.log('[Content] Video found:', videoElement);
+    const filtered = videoElement.style.filter;
+    if (filtered) videoElement.style.filter = ''; // Reset filter to default
     safeRuntime(() => {
       chrome.runtime.sendMessage({ type: 'VIDEO_DETECTED' });
       lastDetectionTime = currentTime;

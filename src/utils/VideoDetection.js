@@ -1,6 +1,6 @@
 // ===== Video Detection Utils =====
 
-const SUPPORTED_PLATFORMS = ['www.youtube.com', 'www.netflix.com', 'www.primevideo.com', 'www.disneyplus.com', 'www.instagram.com', 'www.tiktok.com', 'www.zeteo.com', 'www.coursera.org'];
+const SUPPORTED_PLATFORMS = ['www.youtube.com', 'www.netflix.com', 'www.primevideo.com', 'www.disneyplus.com', 'www.instagram.com', 'www.coursera.org','zeteo.com'];
 
 const firstHandlingCheckers = [youtube, netflix, disneyplus, coursera, zeteo];
 const secondHandlingCheckers = [primevideo];
