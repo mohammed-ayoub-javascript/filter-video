@@ -80,6 +80,26 @@ function safeBroadcast(message) {
   });
 }
 
+// Add helper function for Map logging at the top with other helper functions
+function logDetectedTabs(action, tabId = null) {
+  chrome.tabs.query({}, (tabs) => {
+    const tabMap = {};
+    detectedVideoTabs.forEach((state, id) => {
+      const tab = tabs.find(t => t.id === id);
+      tabMap[id] = {
+        title: tab ? tab.title : 'Tab not found',
+        state: state
+      };
+    });
+    console.log(`[Tab Map ${action}] Current tabs (${detectedVideoTabs.size}):`);
+    console.table(tabMap);
+    if (tabId) {
+      const tab = tabs.find(t => t.id === tabId);
+      console.log(`[Tab Map ${action}] Affected tab:`, tab ? tab.title : 'Tab not found', `(ID: ${tabId})`);
+    }
+  });
+}
+
 // ===== Tab Event Handlers =====
 // Handle tab switching (instant check, no detection needed)
 chrome.tabs.onActivated.addListener(async (activeInfo) => {
@@ -99,7 +119,10 @@ chrome.webNavigation.onHistoryStateUpdated.addListener((details) => {
     // If NOT a video page, we should delete the entry
     if (!isVideoPlayerURL(details.url)) {
       console.log('[URL Change] Not a video page:', details.url);
-      detectedVideoTabs.delete(details.tabId);
+      if (detectedVideoTabs.has(details.tabId)) {
+        detectedVideoTabs.delete(details.tabId);
+        logDetectedTabs('URL_CHANGE_REMOVAL', details.tabId);
+      }
       // Notify about video status change
       safeBroadcast({ 
         type: 'VIDEO_STATUS_CHANGED',
@@ -146,10 +169,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     updateIcon(isExtensionEnabled); // Update icon when state changes
     
     if (!isExtensionEnabled) {
-      // Unblur all detected videos when disabled
+      // Disable filter for all detected videos when extension is disabled
       for (const [tabId, state] of detectedVideoTabs.entries()) {
         console.log('[Background] Checking tab:', tabId, 'State:', state);
-        // Only unblur if the video is currently blurred
+        // Only disable filter if the video is currently filtered
         if (state.filtered) {
           console.log('[Background] Removing filter from tab:', tabId);
           safeSendMessage(tabId, {
@@ -160,18 +183,19 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           });
         }
       }
-      // Clear the detection map after sending unblur messages
+      // Clear the detection map after sending disable filter messages
       detectedVideoTabs.clear();
+      logDetectedTabs('DISABLING');
     } else {
       console.log('[Background] Extension enabled, starting video detection');
-      // Start video detection in each tab
-      chrome.tabs.query({}, (tabs) => {
-        tabs.forEach(tab => safeSendMessage(tab.id, {
-          type: 'TOGGLE_EXTENSION',
-          enabled: true
-        }));
-      });
     }
+    // send the message to all tabs to update their isExtensionEnabled state
+    chrome.tabs.query({}, (tabs) => {
+      tabs.forEach(tab => safeSendMessage(tab.id, {
+        type: 'TOGGLE_EXTENSION',
+        enabled: isExtensionEnabled
+      }));
+    });    
     updateAlarm(isExtensionEnabled);
     sendResponse({ success: true, isEnabled: isExtensionEnabled });
     return true;
@@ -200,6 +224,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         detected: true, 
         filtered: filterOnDetection  // Initialize filter state
       });
+      logDetectedTabs('DETECTION', tabId);
 
       if (filterOnDetection) {
         safeSendMessage(tabId, {
@@ -219,10 +244,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       
     case 'TOGGLE_FILTER':
       const state = detectedVideoTabs.get(tabId);
+      console.log('[Background] Before toggle - Tab state:', state);
       if (state) {
         state.filtered = !state.filtered;  // Toggle filter state
         detectedVideoTabs.set(tabId, state);
-        console.log('[Background] Toggled filter state for tab:', tabId, 'New state:', state);
+        console.log('[Background] After toggle New filtered:', state.filtered);
         safeSendMessage(tabId, {
           type: 'APPLY_FILTER',
           shouldFilter: state.filtered,
@@ -317,6 +343,7 @@ chrome.tabs.onRemoved.addListener((tabId) => {
   if (detectedVideoTabs.has(tabId)) {
     console.log('[Tab Closed] Removing detected video for tab:', tabId);
     detectedVideoTabs.delete(tabId);
+    logDetectedTabs('REMOVAL', tabId);
   }
 });
 

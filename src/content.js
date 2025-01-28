@@ -26,7 +26,7 @@ chrome.runtime.sendMessage({ type: 'GET_IS_ENABLED' }, (response) => {
   console.log('[Content] Extension state:', isExtensionEnabled);
   if (isExtensionEnabled && isVideoPlayerURL(location.href)) {
     videoDetectionAttempts = 0;
-    setTimeout(checkForVideo, 500);
+    setTimeout(checkForVideo, 1000);
   }
 });
 
@@ -37,8 +37,18 @@ function getVideoElement(url=window.location.href) {
   const handling = isVideoPlayerURL(url);
 
   switch (handling) {
-    case -1: // Iframe detection for non supported platforms
-      // it has to have allowfullscreen attribute and src attribute must NOT include 'youtube' (avoid trailers)
+    case -1: // Iframe detection for non supported platforms or direct video URLs
+      // Check if it's a direct video page (body has only one video element)
+      const bodyChildren = document.body.children;
+      if (bodyChildren.length === 1 && bodyChildren[0].tagName === 'VIDEO') {
+        const video = bodyChildren[0];
+        // Ensure video has a style attribute
+        if (!video.hasAttribute('style')) {
+          video.setAttribute('style', '');
+        }
+        return video;
+      }
+      // Otherwise, look for iframe
       return document.querySelector('iframe[src][allowfullscreen]');
     case 1: // First handling platform
       return document.querySelector('video[src]');
@@ -119,10 +129,9 @@ function checkForVideo() {
     if (filtered) videoElement.style.filter = ''; // Reset filter to default
     safeRuntime(() => {
       chrome.runtime.sendMessage({ type: 'VIDEO_DETECTED' });
-      lastDetectionTime = currentTime;
-      videoDetectionAttempts = 0;  // Reset attempts when video is found
-      attachFilterToggle(videoElement);
     });
+    lastDetectionTime = currentTime;
+    attachFilterToggle(videoElement);
     return true;
   }
   
@@ -142,11 +151,13 @@ function attachFilterToggle(videoElement, key = null) {
   const setupListener = (shortcutKey) => {
     currentKeydownHandler = (e) => {
       if (isExtensionEnabled && e.key.toLowerCase() === shortcutKey.toLowerCase()) {
+        e.preventDefault(); // Only prevent default for our shortcut key
         chrome.runtime.sendMessage({ type: 'TOGGLE_FILTER' });
       }
     };
     document.addEventListener('keydown', currentKeydownHandler);
     filterListenerAttached = true;
+    console.log('[Content] Attached filter toggle with shortcut:', shortcutKey);
   };
 
   // If no key provided, get it from background
@@ -168,7 +179,9 @@ chrome.runtime.onMessage.addListener((message) => {
     
     if (!isExtensionEnabled) {
       // Clean up when disabled
+      videoElement = null;
       if (currentKeydownHandler) {
+        console.log('[Content] Extension disabled, cleaning up filter toggle');
         document.removeEventListener('keydown', currentKeydownHandler);
         filterListenerAttached = false;
       }
@@ -176,12 +189,6 @@ chrome.runtime.onMessage.addListener((message) => {
       // Start fresh detection when enabled
       console.log('[Content] Extension enabled, starting video detection');
       videoDetectionAttempts = 0;
-      const video = getVideoElement();
-      if (video) {
-        videoElement = video;
-        // If video exists, attach listener immediately
-        attachFilterToggle(videoElement);
-      }
       setTimeout(checkForVideo, 500); // Start detection
     }
   }
