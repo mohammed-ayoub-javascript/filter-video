@@ -22,25 +22,32 @@ let currentLayout = "QWERTY";
 let equivalentKey = null;
 let instagramFeedObserver = null;
 let videoCheckRunning = false;
+let currentShortcutKey = null;
+let currentHandling = isVideoPlayerURL(location.href); // Store current handling type
 
 // ===== Initialization =====
-// Get initial extension state
+// Get initial extension state and shortcut key
 chrome.runtime.sendMessage({ type: 'GET_IS_ENABLED' }, (response) => {
   isExtensionEnabled = response?.isEnabled;
   console.log('[Content] Extension state:', isExtensionEnabled);
-  if (isExtensionEnabled && isVideoPlayerURL(location.href) && isVideoPlayerURL(location.href) !== 5) {
-    videoDetectionAttempts = 0;
-    setTimeout(checkForVideo, 1000);
-  }
+  
+  // Get shortcut key immediately
+  chrome.runtime.sendMessage({ type: 'GET_SHORTCUT' }, (shortcutResponse) => {
+    currentShortcutKey = shortcutResponse?.key;
+    
+    if (isExtensionEnabled && currentHandling && currentHandling !== 5) {
+      videoDetectionAttempts = 0;
+      setTimeout(checkForVideo, 1000);
+    }
+  });
 });
 
 // ===== Helper Functions =====
 // Helper function to get video element using consistent logic
-function getVideoElement(url=window.location.href) {
+function getVideoElement() {
   if (!isExtensionEnabled) return null;
-  const handling = isVideoPlayerURL(url);
-
-  switch (handling) {
+  
+  switch (currentHandling) {
     case -1: // Iframe detection for non supported platforms or direct video URLs
       // Check if it's a direct video page (body has only one video element)
       const bodyChildren = document.body.children;
@@ -133,7 +140,6 @@ function checkForVideo() {
   }
 
   const currentTime = Date.now();  
-  // Prevent detection if we're within cooldown period
   if (currentTime - lastDetectionTime < DETECTION_COOLDOWN) {
     console.log('[Content] Skipping detection - too soon after last detection');
     return;
@@ -144,19 +150,29 @@ function checkForVideo() {
   const video = getVideoElement(); 
   
   if (video) {
-    if (video === videoElement) {
+    if (video === videoElement && currentHandling !== 1) {
       console.log('[Content] Video already found');
       videoCheckRunning = false;
+      // Re-attach filter if not attached (handles edge cases)
+      if (!filterListenerAttached) {
+        attachFilterToggle(videoElement);
+      }
       return true;
     }
+    
     videoElement = video;
+    videoDetectionAttempts = 0;
+    lastDetectionTime = currentTime;
+    
+    // Set up filter toggle FIRST
+    attachFilterToggle(videoElement);
+    
+    // THEN notify background about video detection
     console.log('[Content] Video found:', videoElement);
     safeRuntime(() => {
       chrome.runtime.sendMessage({ type: 'VIDEO_DETECTED' });
     });
-    videoDetectionAttempts = 0;
-    lastDetectionTime = currentTime;
-    attachFilterToggle(videoElement);
+    
     videoCheckRunning = false;
     return true;
   }
@@ -167,7 +183,7 @@ function checkForVideo() {
     console.log('[Content] Video not found, retrying in 1 second');
     setTimeout(checkForVideo, 1000);
   } else {
-    console.log('[Content] Max detection attempts reached or video already found');
+    console.log('[Content] Max detection attempts reached');
   }
 }
 
@@ -175,28 +191,19 @@ function checkForVideo() {
 function attachFilterToggle(videoElement, key = null) {
   if (filterListenerAttached) return;
   
-  const setupListener = (shortcutKey) => {
-    shortcutKey = shortcutKey.toLowerCase();
-    currentKeydownHandler = (e) => {
-      equivalentKey = getEquivalentKey(shortcutKey, currentLayout);
-      if (isExtensionEnabled && (e.key.toLowerCase() === shortcutKey || e.key.toLowerCase() === equivalentKey)) {
-        e.preventDefault(); // Only prevent default for our shortcut key
-        chrome.runtime.sendMessage({ type: 'TOGGLE_FILTER' });
-      }
-    };
-    document.addEventListener('keydown', currentKeydownHandler);
-    filterListenerAttached = true;
-    console.log('[Content] Attached filter toggle with shortcut:', shortcutKey);
+  const shortcutKey = (key || currentShortcutKey).toLowerCase();
+  currentKeydownHandler = (e) => {
+    equivalentKey = getEquivalentKey(shortcutKey, currentLayout);
+    console.log('[Content] Got equivalent key, sending');
+    if (isExtensionEnabled && (e.key.toLowerCase() === shortcutKey || e.key.toLowerCase() === equivalentKey)) {
+      e.preventDefault(); // Only prevent default for our shortcut key
+      chrome.runtime.sendMessage({ type: 'TOGGLE_FILTER' });
+    }
   };
-
-  // If no key provided, get it from background
-  if (!key) {
-    chrome.runtime.sendMessage({ type: 'GET_SHORTCUT' }, (response) => {
-      setupListener(response?.key || ',');
-    });
-  } else {
-    setupListener(key);
-  }
+  console.log('[Content] Attaching filter toggle with shortcut:', shortcutKey);
+  document.addEventListener('keydown', currentKeydownHandler);
+  filterListenerAttached = true;
+  console.log('[Content] Attached filter toggle with shortcut:', shortcutKey);
 }
 
 // ===== Message Handlers =====
@@ -220,7 +227,7 @@ chrome.runtime.onMessage.addListener((message) => {
       videoCheckRunning = false;
       videoDetectionAttempts = 0;
       setTimeout(checkForVideo, 200); // Start detection
-      if (isVideoPlayerURL(location.href) === 5) {
+      if (currentHandling === 5) {
         startInstagramFeedObserver();
       }
     }
@@ -253,6 +260,7 @@ chrome.runtime.onMessage.addListener((message) => {
 
   if (message.type === 'UPDATE_SHORTCUT') {
     console.log('[Content] Updating shortcut to:', message.key);
+    currentShortcutKey = message.key;
     
     // Remove old listener if exists
     if (currentKeydownHandler) {
@@ -262,9 +270,7 @@ chrome.runtime.onMessage.addListener((message) => {
     }
     
     // Re-attach with new key if we have a video
-    const video = getVideoElement();
-    if (video) {
-      videoElement = video;
+    if (videoElement) {
       attachFilterToggle(videoElement, message.key);
       console.log('[Content] Attached new shortcut listener');
     } else {
@@ -274,7 +280,7 @@ chrome.runtime.onMessage.addListener((message) => {
 
   if (message.type === 'DETECTION_READY') {
     console.log('[Content] Detection ready signal received');
-    if (isVideoPlayerURL(location.href) && isVideoPlayerURL(location.href) !== 5) {
+    if (currentHandling && currentHandling !== 5) {
       videoDetectionAttempts = 0;
       setTimeout(checkForVideo, 500);
     }
@@ -288,20 +294,21 @@ new MutationObserver(() => {
   if (currentUrl !== lastUrl) {
     console.log('[Content] URL changed from:', lastUrl, 'to:', currentUrl);
     lastUrl = currentUrl;
-    const handling = isVideoPlayerURL(currentUrl);
-    // Don't start detection here (unless Instagram Reels) - wait for background signal
-    if (handling === 4) {
+    const newHandling = isVideoPlayerURL(currentUrl);
+    
+    if (newHandling !== currentHandling) currentHandling = newHandling;
+    if (currentHandling === 4) {
       videoDetectionAttempts = 0;
       setTimeout(checkForVideo, 200);
     }
-    if (handling === 5) {
+    if (currentHandling === 5) {
       startInstagramFeedObserver();
     }
   }
 }).observe(document, {subtree: true, childList: true});
 
 // ===== Instagram Feed Observer =====
-if (isVideoPlayerURL(location.href) === 5) {
+if (currentHandling === 5) {
   startInstagramFeedObserver();
 }
 
