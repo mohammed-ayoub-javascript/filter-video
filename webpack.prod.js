@@ -1,6 +1,7 @@
 const path = require('path');
 const CopyPlugin = require('copy-webpack-plugin');
 const TerserPlugin = require('terser-webpack-plugin');
+const webpack = require('webpack');
 
 module.exports = {
   mode: 'production',
@@ -51,6 +52,9 @@ module.exports = {
           }
         }
       ]
+    }),
+    new webpack.DefinePlugin({
+      IS_DEV: JSON.stringify(false)
     })
   ]
 }; 

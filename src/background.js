@@ -82,6 +82,8 @@ function safeBroadcast(message) {
 
 // Add helper function for Map logging at the top with other helper functions
 function logDetectedTabs(action, tabId = null) {
+  if (!IS_DEV) return;  // Only run in development
+  
   chrome.tabs.query({}, (tabs) => {
     const tabMap = {};
     detectedVideoTabs.forEach((state, id) => {
