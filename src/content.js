@@ -13,20 +13,22 @@ import { getEquivalentKey } from './utils/KeyMapping.js';
 let videoDetectionAttempts = 0;
 const MAX_ATTEMPTS = 60;
 let lastDetectionTime = 0;
-const DETECTION_COOLDOWN = 200; // 0.2 second cooldown between detections
+const DETECTION_COOLDOWN = 500; // 0.5 second cooldown between detections
 let filterListenerAttached = false;
 let isExtensionEnabled = true; // Default to true
 let currentKeydownHandler = null; // Store keydown handler reference for removal
 let videoElement = null;
 let currentLayout = "QWERTY";
 let equivalentKey = null;
+let instagramFeedObserver = null;
+let videoCheckRunning = false;
 
 // ===== Initialization =====
 // Get initial extension state
 chrome.runtime.sendMessage({ type: 'GET_IS_ENABLED' }, (response) => {
   isExtensionEnabled = response?.isEnabled;
   console.log('[Content] Extension state:', isExtensionEnabled);
-  if (isExtensionEnabled && isVideoPlayerURL(location.href)) {
+  if (isExtensionEnabled && isVideoPlayerURL(location.href) && isVideoPlayerURL(location.href) !== 5) {
     videoDetectionAttempts = 0;
     setTimeout(checkForVideo, 1000);
   }
@@ -91,6 +93,20 @@ function getVideoElement(url=window.location.href) {
         }
       }
       return null;
+    case 5: // Instagram Feed special handling
+      // Find article without the Play button div (currently playing video)
+      const articles = document.querySelectorAll('article');
+      for (const article of articles) {
+        const playDiv = article.querySelector('div[aria-label="Play"]');
+        if (!playDiv) {
+          const video = article.querySelector('video');
+          if (video && video !== videoElement) {
+            console.log('[Content] Found Instagram Feed video element');
+            return video;
+          }
+        }
+      }
+      return null;
     default:
       return null;
   }
@@ -111,38 +127,47 @@ function safeRuntime(callback) {
 
 // ===== Video Detection =====
 function checkForVideo() {
-  if (!isExtensionEnabled) return null;
-  const currentTime = Date.now();
-  
+  if (!isExtensionEnabled || videoCheckRunning) {
+    console.log('[Content] Extension disabled or video check already running');
+    return;
+  }
+
+  const currentTime = Date.now();  
   // Prevent detection if we're within cooldown period
   if (currentTime - lastDetectionTime < DETECTION_COOLDOWN) {
     console.log('[Content] Skipping detection - too soon after last detection');
     return;
   }
   
+  videoCheckRunning = true;
   console.log('[Content] Checking for video on:', window.location.href);
-  
   const video = getVideoElement(); 
   
   if (video) {
+    if (video === videoElement) {
+      console.log('[Content] Video already found');
+      videoCheckRunning = false;
+      return true;
+    }
     videoElement = video;
     console.log('[Content] Video found:', videoElement);
-    const filtered = videoElement.style.filter;
-    if (filtered) videoElement.style.filter = ''; // Reset filter to default
     safeRuntime(() => {
       chrome.runtime.sendMessage({ type: 'VIDEO_DETECTED' });
     });
+    videoDetectionAttempts = 0;
     lastDetectionTime = currentTime;
     attachFilterToggle(videoElement);
+    videoCheckRunning = false;
     return true;
   }
   
+  videoCheckRunning = false;
   videoDetectionAttempts++;
   if (videoDetectionAttempts < MAX_ATTEMPTS) {
-    console.log('[Content] Video not found, will retry in 1 second');
+    console.log('[Content] Video not found, retrying in 1 second');
     setTimeout(checkForVideo, 1000);
   } else {
-    console.log('[Content] Max detection attempts reached');
+    console.log('[Content] Max detection attempts reached or video already found');
   }
 }
 
@@ -192,8 +217,12 @@ chrome.runtime.onMessage.addListener((message) => {
     } else {
       // Start fresh detection when enabled
       console.log('[Content] Extension enabled, starting video detection');
+      videoCheckRunning = false;
       videoDetectionAttempts = 0;
-      setTimeout(checkForVideo, 500); // Start detection
+      setTimeout(checkForVideo, 200); // Start detection
+      if (isVideoPlayerURL(location.href) === 5) {
+        startInstagramFeedObserver();
+      }
     }
   }
 
@@ -211,8 +240,12 @@ chrome.runtime.onMessage.addListener((message) => {
             break;
         }
       }
-      videoElement.style.filter = filterValue;
-      console.log('[Content] Video filter set to:', videoElement.style.filter);
+      if (videoElement.style.filter !== filterValue) {
+        videoElement.style.filter = filterValue;
+        console.log('[Content] Video filter set to:', videoElement.style.filter);
+      } else {
+        console.log('[Content] Video filter already set to:', videoElement.style.filter);
+      }
     } else {
       console.log('[Content] No video found to apply filter');
     }
@@ -241,7 +274,7 @@ chrome.runtime.onMessage.addListener((message) => {
 
   if (message.type === 'DETECTION_READY') {
     console.log('[Content] Detection ready signal received');
-    if (isVideoPlayerURL(location.href)) {
+    if (isVideoPlayerURL(location.href) && isVideoPlayerURL(location.href) !== 5) {
       videoDetectionAttempts = 0;
       setTimeout(checkForVideo, 500);
     }
@@ -255,13 +288,45 @@ new MutationObserver(() => {
   if (currentUrl !== lastUrl) {
     console.log('[Content] URL changed from:', lastUrl, 'to:', currentUrl);
     lastUrl = currentUrl;
+    const handling = isVideoPlayerURL(currentUrl);
     // Don't start detection here (unless Instagram Reels) - wait for background signal
-    if (isVideoPlayerURL(currentUrl) === 4) {
+    if (handling === 4) {
       videoDetectionAttempts = 0;
       setTimeout(checkForVideo, 200);
     }
+    if (handling === 5) {
+      startInstagramFeedObserver();
+    }
   }
 }).observe(document, {subtree: true, childList: true});
+
+// ===== Instagram Feed Observer =====
+if (isVideoPlayerURL(location.href) === 5) {
+  startInstagramFeedObserver();
+}
+
+async function startInstagramFeedObserver() {
+  // Setup observer for Instagram feed scrolling
+  console.log('[Content] Setting up Instagram feed observer');
+  let article, scrollContainer;
+  while (!article) {
+    article = document.querySelector('article');
+  }
+  scrollContainer = article.parentElement;
+  if (scrollContainer) {
+    instagramFeedObserver = new MutationObserver(async () => {
+      const currentTime = Date.now();
+      if (currentTime - lastDetectionTime < DETECTION_COOLDOWN) return;
+      console.log('[Content] Instagram feed observer triggered');
+      await checkForVideo();
+    });
+    
+    instagramFeedObserver.observe(scrollContainer, {
+      attributes: true,
+      attributeFilter: ['style']
+    });
+  }
+}
 
 // ===== Export for Testing =====
 if (typeof module !== 'undefined' && module.exports) {

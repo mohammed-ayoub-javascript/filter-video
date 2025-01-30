@@ -115,6 +115,7 @@ chrome.tabs.onActivated.addListener(async (activeInfo) => {
 
 // Handle URL changes within the same tab
 chrome.webNavigation.onHistoryStateUpdated.addListener((details) => {
+  console.log('[URL Change] History state updated:', details.url);
   if (details.frameId === 0) { // Only handle main frame updates
     // If NOT a video page, we should delete the entry
     if (!isVideoPlayerURL(details.url)) {
