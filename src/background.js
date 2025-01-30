@@ -19,6 +19,7 @@ let filterShortcut;  // Default shortcut key
 let filterType; // Default filter type
 let filterIntensity;  // Default filter intensity
 let filterOnDetection; // Default filter on detection
+let keyboardLayout; // Default keyboard layout
 
 // ===== Initialization =====
 // Function to manage alarm
@@ -40,12 +41,13 @@ function updateIcon(enabled) {
 }
 
 // Load saved state and set up initial alarm
-chrome.storage.local.get(['filterShortcut', 'filterIntensity', 'isEnabled', 'filterType', 'filterOnDetection'], (result) => {
+chrome.storage.local.get(['filterShortcut', 'filterIntensity', 'isEnabled', 'filterType', 'filterOnDetection', 'keyboardLayout'], (result) => {
   isExtensionEnabled = result.isEnabled ?? true;
   filterShortcut = result.filterShortcut ?? ',';
   filterType = result.filterType ?? 'blur';
   filterIntensity = result.filterIntensity ?? 50;
   filterOnDetection = result.filterOnDetection ?? false;
+  keyboardLayout = result.keyboardLayout ?? 'QWERTY';
   console.log('[Background] Loaded extension state:', isExtensionEnabled);
   updateAlarm(isExtensionEnabled); // Set initial alarm state
   updateIcon(isExtensionEnabled); // Set initial icon state
@@ -332,6 +334,27 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
               shouldFilter: true,
               intensity: filterIntensity,
               filterType: filterType
+            });
+          }
+        });
+      });
+      break;
+
+    case 'POPUP_GET_KEYBOARD_LAYOUT':
+    case 'CONTENT_GET_KEYBOARD_LAYOUT':
+      sendResponse({ layout: keyboardLayout });
+      return true;
+
+    case 'POPUP_UPDATE_KEYBOARD_LAYOUT':
+      console.log('[Background] Updating keyboard layout to:', message.layout);
+      keyboardLayout = message.layout;
+      chrome.storage.local.set({ keyboardLayout: message.layout });
+      chrome.tabs.query({}, (tabs) => {
+        tabs.forEach(tab => {
+          if (detectedVideoTabs.has(tab.id)) {
+            safeSendMessage(tab.id, {
+              type: 'CONTENT_UPDATE_KEYBOARD_LAYOUT',
+              layout: keyboardLayout
             });
           }
         });

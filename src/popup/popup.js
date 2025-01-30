@@ -22,12 +22,19 @@ chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
   const donateView = document.getElementById('donateView');
   const supportButton = document.getElementById('supportButton');
   const backButton = document.querySelector('.back-button');
+  
+  // Updated filter type dropdown elements
   const filterSelect = document.getElementById('filter-type');
-  const selectItems = document.querySelector('.select-items');
+  const filterSelectItems = filterSelect.nextElementSibling;
+  
   const autoFilterSwitch = document.getElementById('autoFilterSwitch');
   const settingsButton = document.getElementById('settingsButton');
   const settingsView = document.getElementById('settingsView');
   const settingsBackButton = document.querySelector('#settingsView .back-button');
+  
+  // Keyboard layout dropdown elements
+  const keyboardLayoutSelect = document.getElementById('keyboard-layout');
+  const keyboardLayoutItems = keyboardLayoutSelect.nextElementSibling;
   
   // ===== Event Handlers =====
   // Add intensity slider handler
@@ -40,37 +47,31 @@ chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
     });
   });
 
-  // Add custom dropdown handlers
+  // Filter type dropdown handler
   filterSelect.addEventListener('click', (e) => {
     e.stopPropagation();
-    selectItems.classList.toggle('hidden');
+    filterSelectItems.classList.toggle('hidden');
     // Hide the currently selected option
     const currentValue = filterSelect.textContent;
-    document.querySelectorAll('.select-item').forEach(item => {
+    filterSelectItems.querySelectorAll('.select-item').forEach(item => {
       if (item.textContent === currentValue) {
         item.style.display = 'none';
       } else {
         item.style.display = 'block';
-        // Reset background
         item.style.background = 'var(--bg-color)';
       }
     });
   });
 
-  // Close dropdown when clicking outside
-  document.addEventListener('click', () => {
-    selectItems.classList.add('hidden');
-  });
-
-  // Handle option selection
-  document.querySelectorAll('.select-item').forEach(item => {
+  // Handle filter type selection
+  filterSelectItems.querySelectorAll('.select-item').forEach(item => {
     item.addEventListener('click', (e) => {
       e.stopPropagation();
       const value = item.dataset.value;
-      filterSelect.textContent = item.textContent;
-      selectItems.classList.add('hidden');
-      // Reset display and background of all items
-      document.querySelectorAll('.select-item').forEach(i => {
+      filterSelect.textContent = value;
+      filterSelectItems.classList.add('hidden');
+      // Reset display of all items
+      filterSelectItems.querySelectorAll('.select-item').forEach(i => {
         i.style.display = 'block';
         i.style.background = 'var(--bg-color)';
       });
@@ -80,7 +81,7 @@ chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
       });
     });
 
-    // Add hover event listeners
+    // Add hover effects for filter items
     item.addEventListener('mouseenter', () => {
       item.style.background = 'var(--primary-color)';
       item.style.color = 'var(--text-color)';
@@ -90,6 +91,12 @@ chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
       item.style.background = 'var(--bg-color)';
       item.style.color = 'var(--text-color)';
     });
+  });
+
+  // Close ALL dropdowns when clicking outside
+  document.addEventListener('click', () => {
+    filterSelectItems.classList.add('hidden');
+    keyboardLayoutItems.classList.add('hidden');
   });
 
   console.log('[Popup] Opened for tab:', tab?.id);
@@ -270,6 +277,7 @@ chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
     console.log('[Popup] Opening settings view');
     mainView.classList.remove('active');
     settingsView.classList.add('active');
+    
     // Get current auto-filter state
     chrome.runtime.sendMessage({ type: 'GET_FILTER_ON_DETECTION' }, (response) => {
       if (chrome.runtime.lastError) {
@@ -277,6 +285,15 @@ chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
         return;
       }
       autoFilterSwitch.checked = response.autoFilter ?? false;
+    });
+
+    // Get current keyboard layout
+    chrome.runtime.sendMessage({ type: 'POPUP_GET_KEYBOARD_LAYOUT' }, (response) => {
+      if (chrome.runtime.lastError) {
+        console.error('[Popup] Keyboard layout get error:', chrome.runtime.lastError.message);
+        return;
+      }
+      keyboardLayoutSelect.textContent = response.layout ?? 'QWERTY';
     });
   });
 
@@ -300,6 +317,52 @@ chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
     });
   });
 
+  // Keyboard layout dropdown handler
+  keyboardLayoutSelect.addEventListener('click', (e) => {
+    e.stopPropagation();
+    keyboardLayoutItems.classList.toggle('hidden');
+    // Hide the currently selected option
+    const currentValue = keyboardLayoutSelect.textContent;
+    keyboardLayoutItems.querySelectorAll('.select-item').forEach(item => {
+      if (item.dataset.value === currentValue) {
+        item.style.display = 'none';
+      } else {
+        item.style.display = 'block';
+        item.style.background = 'var(--bg-color)';
+      }
+    });
+  });
+
+  // Handle keyboard layout selection
+  keyboardLayoutItems.querySelectorAll('.select-item').forEach(item => {
+    item.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const value = item.dataset.value;
+      keyboardLayoutSelect.textContent = value;
+      keyboardLayoutItems.classList.add('hidden');
+      // Reset display of all items
+      keyboardLayoutItems.querySelectorAll('.select-item').forEach(i => {
+        i.style.display = 'block';
+        i.style.background = 'var(--bg-color)';
+      });
+      chrome.runtime.sendMessage({ 
+        type: 'POPUP_UPDATE_KEYBOARD_LAYOUT',
+        layout: value
+      });
+    });
+
+    // Add hover effects for layout items
+    item.addEventListener('mouseenter', () => {
+      item.style.background = 'var(--primary-color)';
+      item.style.color = 'var(--text-color)';
+    });
+
+    item.addEventListener('mouseleave', () => {
+      item.style.background = 'var(--bg-color)';
+      item.style.color = 'var(--text-color)';
+    });
+  });
+
   // ===== Support View Management =====
   // Handle support button click
   supportButton.addEventListener('click', () => {
@@ -319,7 +382,7 @@ chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
   chrome.runtime.sendMessage({ type: 'GET_FILTER_TYPE' }, (response) => {
     if (response?.filterType) {
       filterSelect.textContent = response.filterType;
-      document.querySelectorAll('.select-item').forEach(item => {
+      filterSelectItems.querySelectorAll('.select-item').forEach(item => {
         item.classList.toggle('selected', item.dataset.value === response.filterType);
       });
     }

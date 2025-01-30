@@ -31,15 +31,19 @@ chrome.runtime.sendMessage({ type: 'GET_IS_ENABLED' }, (response) => {
   isExtensionEnabled = response?.isEnabled;
   console.log('[Content] Extension state:', isExtensionEnabled);
   
-  // Get shortcut key immediately
+  // Get both layout and shortcut in parallel
   chrome.runtime.sendMessage({ type: 'GET_SHORTCUT' }, (shortcutResponse) => {
     currentShortcutKey = shortcutResponse?.key;
-    
-    if (isExtensionEnabled && currentHandling && currentHandling !== 5) {
-      videoDetectionAttempts = 0;
-      setTimeout(checkForVideo, 1000);
-    }
   });
+  
+  chrome.runtime.sendMessage({ type: 'CONTENT_GET_KEYBOARD_LAYOUT' }, (layoutResponse) => {
+    currentLayout = layoutResponse?.layout;
+  });
+  
+  if (isExtensionEnabled && currentHandling && currentHandling !== 5) {
+    videoDetectionAttempts = 0;
+    setTimeout(checkForVideo, 1000);
+  }
 });
 
 // ===== Helper Functions =====
@@ -192,14 +196,15 @@ function attachFilterToggle(videoElement, key = null) {
   if (filterListenerAttached) return;
   
   const shortcutKey = (key || currentShortcutKey).toLowerCase();
+  equivalentKey = getEquivalentKey(shortcutKey, currentLayout);
+  
   currentKeydownHandler = (e) => {
-    equivalentKey = getEquivalentKey(shortcutKey, currentLayout);
-    console.log('[Content] Got equivalent key, sending');
     if (isExtensionEnabled && (e.key.toLowerCase() === shortcutKey || e.key.toLowerCase() === equivalentKey)) {
-      e.preventDefault(); // Only prevent default for our shortcut key
+      e.preventDefault();
       chrome.runtime.sendMessage({ type: 'TOGGLE_FILTER' });
     }
   };
+  
   console.log('[Content] Attaching filter toggle with shortcut:', shortcutKey);
   document.addEventListener('keydown', currentKeydownHandler);
   filterListenerAttached = true;
@@ -282,7 +287,20 @@ chrome.runtime.onMessage.addListener((message) => {
     console.log('[Content] Detection ready signal received');
     if (currentHandling && currentHandling !== 5) {
       videoDetectionAttempts = 0;
-      setTimeout(checkForVideo, 500);
+      setTimeout(checkForVideo, 200);
+    }
+  }
+
+  if (message.type === 'CONTENT_UPDATE_KEYBOARD_LAYOUT') {
+    console.log('[Content] Updating keyboard layout to:', message.layout);
+    currentLayout = message.layout;
+    // If we have an active video and filter, update the key mapping
+    if (videoElement && filterListenerAttached) {
+      // Remove old listener
+      document.removeEventListener('keydown', currentKeydownHandler);
+      filterListenerAttached = false;
+      // Re-attach with new layout
+      attachFilterToggle(videoElement, currentShortcutKey);
     }
   }
 });
