@@ -36,6 +36,9 @@ chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
   const keyboardLayoutSelect = document.getElementById('keyboard-layout');
   const keyboardLayoutItems = keyboardLayoutSelect.nextElementSibling;
   
+  // Add to UI elements section
+  const resetKey = document.getElementById('reset-key');
+  
   // ===== Event Handlers =====
   // Add intensity slider handler
   intensitySlider.addEventListener('input', () => {
@@ -293,7 +296,16 @@ chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
         console.error('[Popup] Keyboard layout get error:', chrome.runtime.lastError.message);
         return;
       }
-      keyboardLayoutSelect.textContent = response.layout ?? 'QWERTY';
+      keyboardLayoutSelect.textContent = response.layout;
+    });
+
+    // Get current reset key
+    chrome.runtime.sendMessage({ type: 'GET_RESET_KEY' }, (response) => {
+      if (chrome.runtime.lastError) {
+        console.error('[Popup] Reset key get error:', chrome.runtime.lastError.message);
+        return;
+      }
+      resetKey.textContent = response.key;
     });
   });
 
@@ -386,5 +398,44 @@ chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
         item.classList.toggle('selected', item.dataset.value === response.filterType);
       });
     }
+  });
+
+  // Add reset key handler
+  resetKey.addEventListener('click', () => {
+    resetKey.classList.add('listening');
+    resetKey.textContent = 'key';
+
+    const keyHandler = (e) => {
+      e.preventDefault();
+      
+      if (e.key === 'Escape') {
+        chrome.runtime.sendMessage({ type: 'GET_RESET_KEY' }, (response) => {
+          resetKey.textContent = response?.key;
+        });
+        resetKey.classList.remove('listening');
+        document.removeEventListener('keydown', keyHandler);
+        return;
+      }
+
+      const newKey = e.key.toLowerCase();
+      resetKey.textContent = newKey;
+      resetKey.classList.remove('listening');
+
+      chrome.runtime.sendMessage({ 
+        type: 'UPDATE_RESET_KEY',
+        key: newKey
+      }, () => {
+        if (chrome.runtime.lastError) {
+          console.log('[Popup] Error updating reset key:', chrome.runtime.lastError);
+          chrome.runtime.sendMessage({ type: 'GET_RESET_KEY' }, (response) => {
+            resetKey.textContent = response?.key;
+          });
+        }
+      });
+
+      document.removeEventListener('keydown', keyHandler);
+    };
+
+    document.addEventListener('keydown', keyHandler);
   });
 }); 

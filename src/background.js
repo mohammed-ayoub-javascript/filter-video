@@ -20,6 +20,7 @@ let filterType; // Default filter type
 let filterIntensity;  // Default filter intensity
 let filterOnDetection; // Default filter on detection
 let keyboardLayout; // Default keyboard layout
+let resetKey;  // Default reset key
 
 // ===== Initialization =====
 // Function to manage alarm
@@ -41,13 +42,14 @@ function updateIcon(enabled) {
 }
 
 // Load saved state and set up initial alarm
-chrome.storage.local.get(['filterShortcut', 'filterIntensity', 'isEnabled', 'filterType', 'filterOnDetection', 'keyboardLayout'], (result) => {
+chrome.storage.local.get(['filterShortcut', 'filterIntensity', 'isEnabled', 'filterType', 'filterOnDetection', 'keyboardLayout', 'resetKey'], (result) => {
   isExtensionEnabled = result.isEnabled ?? true;
   filterShortcut = result.filterShortcut ?? ',';
   filterType = result.filterType ?? 'blur';
   filterIntensity = result.filterIntensity ?? 50;
   filterOnDetection = result.filterOnDetection ?? false;
   keyboardLayout = result.keyboardLayout ?? 'QWERTY';
+  resetKey = result.resetKey ?? 'r';
   console.log('[Background] Loaded extension state:', isExtensionEnabled);
   updateAlarm(isExtensionEnabled); // Set initial alarm state
   updateIcon(isExtensionEnabled); // Set initial icon state
@@ -188,11 +190,24 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           });
         }
       }
+      // Notify all tabs to disable reset key
+      chrome.tabs.query({}, (tabs) => {
+        tabs.forEach(tab => safeSendMessage(tab.id, {
+          type: 'UPDATE_RESET_KEY',
+          key: null  // Set to null when disabled
+        }));
+      });
       // Clear the detection map after sending disable filter messages
       detectedVideoTabs.clear();
       logDetectedTabs('DISABLING');
     } else {
-      console.log('[Background] Extension enabled, starting video detection');
+      // When re-enabling, restore reset key
+      chrome.tabs.query({}, (tabs) => {
+        tabs.forEach(tab => safeSendMessage(tab.id, {
+          type: 'UPDATE_RESET_KEY',
+          key: resetKey
+        }));
+      });
     }
     // send the message to all tabs to update their isExtensionEnabled state
     chrome.tabs.query({}, (tabs) => {
@@ -359,6 +374,48 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           }
         });
       });
+      break;
+
+    case 'GET_RESET_KEY':
+      sendResponse({ key: resetKey });
+      return true;
+
+    case 'UPDATE_RESET_KEY':
+      console.log('[Background] Updating reset key to:', message.key);
+      resetKey = message.key;
+      chrome.storage.local.set({ resetKey: message.key });
+      chrome.tabs.query({}, (tabs) => {
+        tabs.forEach(tab => {
+          if (detectedVideoTabs.has(tab.id)) {
+            safeSendMessage(tab.id, {
+              type: 'UPDATE_RESET_KEY',
+              key: resetKey
+            });
+          }
+        });
+      });
+      break;
+
+    case 'QUICK_RESET':
+      // Only handle if extension is enabled and we have the tab ID
+      if (isExtensionEnabled && sender.tab?.id) {
+        console.log('[Background] Quick reset triggered for tab:', sender.tab.id);
+        const tabId = sender.tab.id;
+        
+        // Only reset this specific tab
+        safeSendMessage(tabId, {
+          type: 'QUICK_RESET_STATE',
+          enabled: false
+        });
+        
+        // Re-enable after delay for this tab only
+        setTimeout(() => {
+          safeSendMessage(tabId, {
+            type: 'QUICK_RESET_STATE',
+            enabled: true
+          });
+        }, 500);
+      }
       break;
   }
 });

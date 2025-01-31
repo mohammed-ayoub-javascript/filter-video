@@ -53,6 +53,7 @@
       background: var(--secondary-bg);
       color: var(--primary-color);
       transition: all 0.2s ease;
+      font-weight: 600;
     }
 
     #shortcut-key:hover {
@@ -62,7 +63,6 @@
     #shortcut-key.listening {
       background: var(--primary-color);
       color: var(--text-color);
-      border-color: var(--primary-color);
       animation: pulse 1.5s infinite;
     }
 
@@ -289,7 +289,7 @@
       border-radius: 4px;
       font-family: inherit;
       font-size: inherit;
-      font-weight: inherit;
+      font-weight: 500;
       cursor: pointer;
       background: var(--secondary-bg);
       color: var(--primary-color);
@@ -428,6 +428,7 @@
       width: 18px;
       background-color: var(--secondary-bg);
       border-radius: 4px;
+      border: 1px solid var(--primary-color);
       transition: all 0.2s ease;
     }
 
@@ -454,6 +455,48 @@
 
     .checkbox input:checked ~ .checkmark:after {
       display: block;
+    }
+
+    #reset-key {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2px 8px;
+      height: 18px;
+      min-width: 18px;
+      border: 1px solid var(--primary-color);
+      border-radius: 4px;
+      font-family: 'SF Mono', 'Courier New', monospace;
+      font-size: 12px;
+      cursor: pointer;
+      background: var(--secondary-bg);
+      color: var(--primary-color);
+      transition: all 0.2s ease;
+      margin-right: 2px;
+      font-weight: 600;
+    }
+
+    #reset-key:hover {
+      background: var(--hover-color);
+      box-shadow: 0 0 5px rgba(33, 150, 243, 0.3);
+    }
+
+    #reset-key.listening {
+      background: var(--primary-color);
+      color: var(--text-color);
+      animation: reset-pulse 1.5s infinite;
+    }
+
+    @keyframes reset-pulse {
+      0% {
+        box-shadow: 0 0 0 0 rgba(33, 150, 243, 0.6);
+      }
+      70% {
+        box-shadow: 0 0 0 6px rgba(33, 150, 243, 0);
+      }
+      100% {
+        box-shadow: 0 0 0 0 rgba(33, 150, 243, 0);
+      }
     }
   </style>
 </head>
@@ -569,6 +612,10 @@
           <div class="select-item" data-value="QWERTY">QWERTY</div>
         </div>
       </div>
+    </div>
+    <div class="setting-item">
+      <span>Quick reset key</span>
+      <span id="reset-key" class="shortcut-key">r</span>
     </div>
   </div>
 </div>

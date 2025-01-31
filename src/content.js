@@ -24,6 +24,8 @@ let instagramFeedObserver = null;
 let videoCheckRunning = false;
 let currentShortcutKey = null;
 let currentHandling = isVideoPlayerURL(location.href); // Store current handling type
+let currentResetKey = null;
+let equivalentResetKey = null;
 
 // ===== Initialization =====
 // Get initial extension state and shortcut key
@@ -38,6 +40,10 @@ chrome.runtime.sendMessage({ type: 'GET_IS_ENABLED' }, (response) => {
   
   chrome.runtime.sendMessage({ type: 'CONTENT_GET_KEYBOARD_LAYOUT' }, (layoutResponse) => {
     currentLayout = layoutResponse?.layout;
+  });
+  
+  chrome.runtime.sendMessage({ type: 'GET_RESET_KEY' }, (resetResponse) => {
+    currentResetKey = resetResponse?.key;
   });
   
   if (isExtensionEnabled && currentHandling && currentHandling !== 5) {
@@ -197,7 +203,8 @@ function attachFilterToggle(videoElement, key = null) {
   
   const shortcutKey = (key || currentShortcutKey).toLowerCase();
   equivalentKey = getEquivalentKey(shortcutKey, currentLayout);
-  
+  equivalentResetKey = getEquivalentKey(currentResetKey, currentLayout);
+
   currentKeydownHandler = (e) => {
     if (isExtensionEnabled && (e.key.toLowerCase() === shortcutKey || e.key.toLowerCase() === equivalentKey)) {
       e.preventDefault();
@@ -209,6 +216,13 @@ function attachFilterToggle(videoElement, key = null) {
   document.addEventListener('keydown', currentKeydownHandler);
   filterListenerAttached = true;
   console.log('[Content] Attached filter toggle with shortcut:', shortcutKey);
+
+  document.addEventListener('keydown', (e) => {
+    // Only handle reset key if extension is enabled and key is set
+    if (isExtensionEnabled && (e.key.toLowerCase() === currentResetKey || e.key.toLowerCase() === equivalentResetKey)) {
+      chrome.runtime.sendMessage({ type: 'QUICK_RESET' });
+    }
+  });
 }
 
 // ===== Message Handlers =====
@@ -301,6 +315,33 @@ chrome.runtime.onMessage.addListener((message) => {
       filterListenerAttached = false;
       // Re-attach with new layout
       attachFilterToggle(videoElement, currentShortcutKey);
+    }
+  }
+
+  if (message.type === 'UPDATE_RESET_KEY') {
+    console.log('[Content] Updating reset key to:', message.key);
+    currentResetKey = message.key;  // Will be null when extension disabled
+  }
+
+  if (message.type === 'QUICK_RESET_STATE') {
+    console.log('[Content] Quick reset state changed:', message.enabled);
+    if (!message.enabled) {
+      // Clean up when disabled
+      videoElement = null;
+      if (currentKeydownHandler) {
+        console.log('[Content] Quick reset - temporarily removing filter toggle');
+        document.removeEventListener('keydown', currentKeydownHandler);
+        filterListenerAttached = false;
+      }
+    } else {
+      // Start fresh detection when re-enabled
+      console.log('[Content] Quick reset - re-enabling and starting video detection');
+      videoCheckRunning = false;
+      videoDetectionAttempts = 0;
+      setTimeout(checkForVideo, 200);
+      if (currentHandling === 5) {
+        startInstagramFeedObserver();
+      }
     }
   }
 });
