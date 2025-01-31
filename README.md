@@ -17,6 +17,21 @@ Web extension that detects the video, and allows you to apply the filter (blur/o
 - Global enable/disable switch
 - Persistent settings across browser sessions
 
+### NEW in v1.2.0:
+
+- English-Arabic keyboard change support:
+  - Automatic key mapping for Arabic keyboards so you can use the same shortcut key to change English<->Arabic without having to update shortcut key as each key from Arabic is mapped to its equivalent English key (QWERTY for Arabic 101 and AZERTY for Arabic 102)
+- Quick reset functionality:
+  - Customizable reset shortcut key
+  - Instant recovery without popup interaction
+- Extended platform support:
+  - Instagram Feed and Reels
+  - TikTok
+  - Coursera lecture videos
+  - Disney Plus
+  - Improved iframe detection
+  - Support for "Open in New Tab" videos (right click on video and select "Open in New Tab" is available for some platforms like Coursera lectures)
+
 ## Installation
 
 ### For Chrome
@@ -148,3 +163,18 @@ We do not:
 - Issues: [GitHub Issues](https://github.com/bengmoh/filter-video/issues)
 - Feedback: [Feedback Form](https://forms.gle/muGcKNufR2XzAnVV9)
 - Source: [GitHub Repository](https://github.com/bengmoh/filter-video)
+
+## Platform Support
+
+### Fully Supported Platforms
+
+- YouTube
+- Instagram (Feed & Reels)
+- TikTok
+- Netflix
+- Disney Plus
+- Amazon Prime Video
+- Coursera lecture videos
+- Zeteo news website
+- "Open in New Tab" videos
+- Other platforms via iframe detection
