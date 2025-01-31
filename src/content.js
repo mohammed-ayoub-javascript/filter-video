@@ -177,6 +177,8 @@ function checkForVideo() {
     // Set up filter toggle FIRST
     attachFilterToggle(videoElement);
     
+    if (videoElement.style.filter) videoElement.style.filter = ''; 
+
     // THEN notify background about video detection
     console.log('[Content] Video found:', videoElement);
     safeRuntime(() => {
