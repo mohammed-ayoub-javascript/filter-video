@@ -37,7 +37,7 @@ function youtube(url) {
 }
 
 function netflix(url) {
-    return url.includes('netflix.com/watch') && !url.includes('miniDpPlayButton');
+    return url.includes('netflix.com/watch');
 }
 
 function disneyplus(url) {

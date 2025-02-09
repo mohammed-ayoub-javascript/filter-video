@@ -1,11 +1,11 @@
 import { isVideoPlayerURL } from './utils/VideoDetection.js';
 import { getEquivalentKey } from './utils/KeyMapping.js';
 /**
- * Content Script: Handles video detection and blur functionality
+ * Content Script: Handles video detection and filter functionality
  * Responsibilities:
  * - Detects video elements on supported streaming platforms
- * - Manages blur effect on detected videos
- * - Handles keyboard shortcuts for blur toggle
+ * - Manages filter effect on detected videos
+ * - Handles keyboard shortcuts for filter toggle
  * - Maintains connection with background script
  */
 
