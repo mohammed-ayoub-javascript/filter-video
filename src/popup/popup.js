@@ -1,3 +1,5 @@
+import "./popup.scss";
+
 /**
  * Popup Script: Manages the extension's popup UI and user interactions
  * Responsibilities:
@@ -76,23 +78,11 @@ chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
       // Reset display of all items
       filterSelectItems.querySelectorAll('.select-item').forEach(i => {
         i.style.display = 'block';
-        i.style.background = 'var(--bg-color)';
       });
       chrome.runtime.sendMessage({ 
         type: 'UPDATE_FILTER_TYPE',
         filterType: value
       });
-    });
-
-    // Add hover effects for filter items
-    item.addEventListener('mouseenter', () => {
-      item.style.background = 'var(--primary-color)';
-      item.style.color = 'var(--text-color)';
-    });
-
-    item.addEventListener('mouseleave', () => {
-      item.style.background = 'var(--bg-color)';
-      item.style.color = 'var(--text-color)';
     });
   });
 
@@ -355,23 +345,11 @@ chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
       // Reset display of all items
       keyboardLayoutItems.querySelectorAll('.select-item').forEach(i => {
         i.style.display = 'block';
-        i.style.background = 'var(--bg-color)';
       });
       chrome.runtime.sendMessage({ 
         type: 'POPUP_UPDATE_KEYBOARD_LAYOUT',
         layout: value
       });
-    });
-
-    // Add hover effects for layout items
-    item.addEventListener('mouseenter', () => {
-      item.style.background = 'var(--primary-color)';
-      item.style.color = 'var(--text-color)';
-    });
-
-    item.addEventListener('mouseleave', () => {
-      item.style.background = 'var(--bg-color)';
-      item.style.color = 'var(--text-color)';
     });
   });
 

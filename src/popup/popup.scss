@@ -1,0 +1,516 @@
+/* Variables */
+$primary-color: #2196F3;
+$bg-color: #1a1a1a;
+$text-color: #ffffff;
+$secondary-bg: #2d2d2d;
+$hover-color: #3a3a3a;
+
+:root {
+    --primary-color: $primary-color;
+    --bg-color: $bg-color;
+    --text-color: $text-color;
+    --secondary-bg: $secondary-bg;
+    --hover-color: $hover-color;
+}
+
+/* Keyframes */
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(33, 150, 243, 0.6);
+  }
+  70% {
+    box-shadow: 0 0 0 6px rgba(33, 150, 243, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(33, 150, 243, 0);
+  }
+}
+
+@keyframes reset-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(33, 150, 243, 0.6);
+  }
+  70% {
+    box-shadow: 0 0 0 6px rgba(33, 150, 243, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(33, 150, 243, 0);
+  }
+}
+
+/* Global utility */
+.hidden {
+  display: none !important;
+}
+
+/* Main styles */
+body {
+  width: 280px;
+  padding: 16px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  background-color: $bg-color;
+  color: $text-color;
+  margin: 0;
+
+  /* Header */
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+
+    .brand {
+      font-size: 20px;
+      font-weight: 600;
+      color: $primary-color;
+    }
+
+    .header-controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-left: auto;
+
+      .icon-button {
+        background: none;
+        border: none;
+        padding: 4px;
+        cursor: pointer;
+        color: $text-color;
+        opacity: 0.8;
+        transition: opacity 0.2s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        &:hover {
+          opacity: 1;
+          color: $primary-color;
+        }
+
+        svg {
+          width: 20px;
+          height: 20px;
+        }
+      }
+
+      .switch-container {
+        display: flex;
+        align-items: center;
+      }
+    }
+  }
+
+  /* Status message */
+  #status {
+    font-size: 14px;
+    opacity: 0.9;
+    margin-bottom: 16px;
+  }
+
+  /* Shortcut container */
+  #shortcut-container {
+    margin-bottom: 16px;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-wrap: wrap;
+  }
+
+  #shortcut-key {
+    display: inline-block;
+    padding: 4px 8px;
+    border: 1px solid $primary-color;
+    border-radius: 4px;
+    font-family: 'SF Mono', 'Courier New', monospace;
+    cursor: pointer;
+    background: $secondary-bg;
+    color: $primary-color;
+    transition: all 0.2s ease;
+    font-weight: 600;
+
+    &:hover {
+      background: $hover-color;
+    }
+
+    &.listening {
+      background: $primary-color;
+      color: $text-color;
+      animation: pulse 1.5s infinite;
+    }
+  }
+
+  /* Intensity container */
+  #intensity-container {
+    background: $secondary-bg;
+    padding: 12px;
+    border-radius: 8px;
+    margin-bottom: 16px;
+
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 14px;
+    }
+
+    #filter-intensity {
+      width: 100%;
+      margin: 8px 0;
+      -webkit-appearance: none;
+      appearance: none;
+      height: 4px;
+      background: $primary-color;
+      border-radius: 2px;
+      outline: none;
+
+      &::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        width: 16px;
+        height: 16px;
+        background: $text-color;
+        border-radius: 50%;
+        cursor: pointer;
+        transition: all 0.2s ease;
+
+        &:hover {
+          transform: scale(1.1);
+        }
+      }
+    }
+
+    #intensity-value {
+      font-size: 12px;
+      color: $text-color;
+      opacity: 0.8;
+    }
+  }
+
+  /* Switch styling */
+  .switch {
+    position: relative;
+    display: inline-block;
+    width: 40px;
+    height: 20px;
+
+    input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: $secondary-bg;
+      transition: 0.3s;
+      border-radius: 20px;
+
+      &:before {
+        position: absolute;
+        content: '';
+        height: 16px;
+        width: 16px;
+        left: 2px;
+        bottom: 2px;
+        background-color: $text-color;
+        transition: 0.3s;
+        border-radius: 50%;
+      }
+    }
+
+    input:checked + .slider {
+      background-color: $primary-color;
+    }
+
+    input:checked + .slider:before {
+      transform: translateX(20px);
+    }
+  }
+
+  /* Footer */
+  .footer {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid $secondary-bg;
+    font-size: 12px;
+    gap: 8px;
+
+    a {
+      color: $text-color;
+      text-decoration: none;
+      opacity: 0.8;
+      transition: opacity 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+
+      &:first-child {
+        justify-self: start;
+      }
+      &:nth-child(2) {
+        justify-self: center;
+      }
+      &:last-child {
+        justify-self: end;
+      }
+
+      &:hover {
+        opacity: 1;
+        color: $primary-color;
+      }
+
+      svg {
+        width: 14px;
+        height: 14px;
+      }
+    }
+  }
+
+  /* View visibility */
+  .view {
+    display: none;
+
+    &.active {
+      display: block;
+    }
+  }
+
+  /* Back button */
+  .back-button {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    color: $text-color;
+    background: none;
+    border: none;
+    padding: 8px 0;
+    cursor: pointer;
+    font-size: 14px;
+    opacity: 0.8;
+    transition: opacity 0.2s ease;
+
+    &:hover {
+      opacity: 1;
+      color: $primary-color;
+    }
+  }
+
+  /* Donate options */
+  .donate-options {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 16px;
+
+    .donate-button {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px;
+      background: $secondary-bg;
+      border: none;
+      border-radius: 8px;
+      color: $text-color;
+      cursor: pointer;
+      transition: background 0.2s ease;
+      text-decoration: none;
+      font-size: 14px;
+
+      &:hover {
+        background: $hover-color;
+      }
+
+      svg {
+        width: 20px;
+        height: 20px;
+      }
+    }
+  }
+
+  /* Custom select */
+  .custom-select {
+    position: relative;
+    display: inline-block;
+  }
+
+  .filter-select {
+    display: inline-block;
+    padding: 2px 24px 2px 8px;
+    border: 1px solid $primary-color;
+    border-radius: 4px;
+    font-family: inherit;
+    font-size: inherit;
+    font-weight: 500;
+    cursor: pointer;
+    background: $secondary-bg;
+    color: $primary-color;
+    transition: all 0.2s ease;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%232196F3'%3e%3cpath d='M7 10l5 5 5-5z'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 4px center;
+    background-size: 16px;
+    vertical-align: middle;
+    line-height: 1.4;
+    appearance: none;
+    -webkit-appearance: none;
+    outline: none;
+    width: 90px;
+    text-align: left;
+
+    &:hover {
+      background-color: $hover-color;
+    }
+  }
+
+  .select-items {
+    position: absolute;
+    top: calc(100% + 2px);
+    left: 0;
+    width: 85px;
+    z-index: 99;
+    background: $bg-color;
+    border: 1px solid $primary-color;
+    border-radius: 4px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    overflow: hidden;
+    padding: 2px;
+
+    .select-item {
+      padding: 4px 8px;
+      cursor: pointer;
+      font-family: inherit;
+      font-weight: inherit;
+      transition: all 0.2s ease;
+      color: $text-color;
+      white-space: nowrap;
+      font-size: 13px;
+      border-radius: 2px;
+      background: $bg-color;
+
+      &:hover {
+        background: $primary-color !important;
+        color: $text-color !important;
+      }
+
+      &.selected {
+        background: $primary-color;
+        color: $text-color;
+      }
+    }
+  }
+
+  /* Settings view */
+  #settingsView {
+    .settings-content {
+      margin-top: 16px;
+    }
+
+    .setting-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 0;
+      font-size: 14px;
+      color: $text-color;
+
+      span {
+        margin-right: 12px;
+        line-height: 1.4;
+      }
+    }
+
+    .checkbox {
+      position: relative;
+      width: 18px;
+      height: 18px;
+      flex-shrink: 0;
+
+      input {
+        position: absolute;
+        opacity: 0;
+        cursor: pointer;
+        height: 0;
+        width: 0;
+      }
+    }
+
+    .checkmark {
+      position: absolute;
+      top: 0;
+      left: 0;
+      height: 18px;
+      width: 18px;
+      background-color: $secondary-bg;
+      border-radius: 4px;
+      border: 1px solid $primary-color;
+      transition: all 0.2s ease;
+
+      &:after {
+        content: "";
+        position: absolute;
+        display: none;
+        left: 6px;
+        top: 3px;
+        width: 4px;
+        height: 8px;
+        border: solid white;
+        border-width: 0 2px 2px 0;
+        transform: rotate(45deg);
+      }
+    }
+
+    .checkbox:hover {
+      input ~ .checkmark {
+        background-color: $hover-color;
+      }
+    }
+
+    .checkbox input:checked {
+      ~ .checkmark {
+        background-color: $primary-color;
+
+        &:after {
+          display: block;
+        }
+      }
+    }
+
+    #reset-key {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2px 8px;
+      height: 18px;
+      min-width: 18px;
+      border: 1px solid $primary-color;
+      border-radius: 4px;
+      font-family: 'SF Mono', 'Courier New', monospace;
+      font-size: 12px;
+      cursor: pointer;
+      background: $secondary-bg;
+      color: $primary-color;
+      transition: all 0.2s ease;
+      margin-right: 2px;
+      font-weight: 600;
+
+      &:hover {
+        background: $hover-color;
+        box-shadow: 0 0 5px rgba(33, 150, 243, 0.3);
+      }
+
+      &.listening {
+        background: $primary-color;
+        color: $text-color;
+        animation: reset-pulse 1.5s infinite;
+      }
+    }
+  }
+}
