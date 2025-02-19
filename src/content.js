@@ -70,7 +70,14 @@ function getVideoElement() {
         return video;
       }
       // Otherwise, look for iframe
-      return document.querySelector('iframe[src][allowfullscreen]');
+      const iframes = document.querySelectorAll('iframe[src][allowfullscreen]');
+      if (location.href.includes('youglish.com')) return iframes[0];
+      for (const iframe of iframes) {
+        if (!iframe.src.includes('youtube.com')) {
+          return iframe;
+        }
+      }
+      return null;
     case 1: // First handling platform
       return document.querySelector('video[src]');
     case 2: // Second handling platform
