@@ -5,14 +5,6 @@ $text-color: #ffffff;
 $secondary-bg: #2d2d2d;
 $hover-color: #3a3a3a;
 
-:root {
-    --primary-color: $primary-color;
-    --bg-color: $bg-color;
-    --text-color: $text-color;
-    --secondary-bg: $secondary-bg;
-    --hover-color: $hover-color;
-}
-
 /* Keyframes */
 @keyframes pulse {
   0% {
