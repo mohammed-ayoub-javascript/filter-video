@@ -217,7 +217,7 @@ function attachFilterToggle(videoElement, key = null) {
 
   currentKeydownHandler = (e) => {
     if (isExtensionEnabled && (e.key.toLowerCase() === shortcutKey || e.key.toLowerCase() === equivalentKey)) {
-      e.preventDefault();
+      e.stopPropagation();
       chrome.runtime.sendMessage({ type: 'TOGGLE_FILTER' });
     }
   };
