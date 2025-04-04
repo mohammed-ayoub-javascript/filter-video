@@ -136,8 +136,6 @@ chrome.webNavigation.onHistoryStateUpdated.addListener((details) => {
         tabId: details.tabId,
         hasVideo: false 
       });
-    } else if (isVideoPlayerURL(details.url) === 4) {
-      console.log('[URL Change] Skipping detection ready for Instagram Reels');
     } else {
       // Only send DETECTION_READY for video pages
       console.log('[URL Change] Video page detected, sending DETECTION_READY');
