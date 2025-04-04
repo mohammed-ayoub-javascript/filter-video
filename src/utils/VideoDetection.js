@@ -17,7 +17,7 @@ export function isVideoPlayerURL(url) {
     if (secondHandlingCheckers.some(checker => checker(url))) return 2;
     
     // Special case for TikTok
-    if (tiktok(url)) return 3;
+    if (tiktokNoFeed(url)) return 3;
     
     // Special case for Instagram Reels
     if (instagramReels(url)) return 4;
@@ -26,7 +26,11 @@ export function isVideoPlayerURL(url) {
     url = url.split('/')[2];
 
     // Special case for Instagram Feed
-    if (instagram(url)) return 5;
+    if (instagramFeed(url)) return 5;
+
+    // Special case for TikTok Feed
+    if (tiktokFeed(url)) return 6;
+
     console.log(url);
     return SUPPORTED_PLATFORMS.includes(url) ? 0 : -1; // If the domain is in the supported platforms, return 0 (no video player), else return -1 (iframe)
 }
@@ -52,8 +56,8 @@ function zeteo(url) {
     return url.includes('zeteo.com/p');
 }
 
-function tiktok(url) {
-    return url.includes('tiktok.com');
+function tiktokNoFeed(url) {
+    return url.includes('tiktok.com/@');
 }
 
 function primevideo(url) {
@@ -64,6 +68,10 @@ function instagramReels(url) {
     return url.includes('instagram.com/reels');
 }
 
-function instagram(url) {
+function instagramFeed(url) {
     return url === 'www.instagram.com';
+}
+
+function tiktokFeed(url) {
+    return url === 'www.tiktok.com';
 }

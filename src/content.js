@@ -26,6 +26,7 @@ let currentShortcutKey = null;
 let currentHandling = isVideoPlayerURL(location.href); // Store current handling type
 let currentResetKey = null;
 let equivalentResetKey = null;
+let tiktokFeedObserver = null;  // Add this with other state variables
 
 // ===== Initialization =====
 // Get initial extension state and shortcut key
@@ -46,7 +47,7 @@ chrome.runtime.sendMessage({ type: 'GET_IS_ENABLED' }, (response) => {
     currentResetKey = resetResponse?.key;
   });
   
-  if (isExtensionEnabled && currentHandling && currentHandling !== 5) {
+  if (isExtensionEnabled && currentHandling && currentHandling !== 5 && currentHandling !== 6) {
     videoDetectionAttempts = 0;
     setTimeout(checkForVideo, 1000);
   }
@@ -83,7 +84,7 @@ function getVideoElement() {
     case 2: // Second handling platform
       const videos = document.querySelectorAll('video[src]');
       return videos.length > 1 ? videos[1] : null;
-    case 3: // TikTok special handling
+    case 3: case 6: // TikTok special handling
       // First try to find active article (/foryou route)
       const container = document.querySelector('article[style=""]');
       const video = container?.querySelector('video') || document.querySelector('video');
@@ -167,7 +168,7 @@ function checkForVideo() {
   const video = getVideoElement(); 
   
   if (video) {
-    if (video === videoElement && currentHandling !== 1) {
+    if (video === videoElement && currentHandling !== 1 && currentHandling !== 6) {
       console.log('[Content] Video already found');
       videoCheckRunning = false;
       // Re-attach filter if not attached (handles edge cases)
@@ -258,6 +259,9 @@ chrome.runtime.onMessage.addListener((message) => {
       if (currentHandling === 5) {
         startInstagramFeedObserver();
       }
+      if (currentHandling === 6) {
+        startTiktokFeedObserver();
+      }
     }
   }
 
@@ -308,7 +312,7 @@ chrome.runtime.onMessage.addListener((message) => {
 
   if (message.type === 'DETECTION_READY') {
     console.log('[Content] Detection ready signal received');
-    if (currentHandling && currentHandling !== 5) {
+    if (currentHandling && currentHandling !== 5 && currentHandling !== 6) {
       videoDetectionAttempts = 0;
       setTimeout(checkForVideo, 200);
     }
@@ -351,6 +355,9 @@ chrome.runtime.onMessage.addListener((message) => {
       if (currentHandling === 5) {
         startInstagramFeedObserver();
       }
+      if (currentHandling === 6) {
+        startTiktokFeedObserver();
+      }
     }
   }
 });
@@ -372,12 +379,17 @@ new MutationObserver(() => {
     if (currentHandling === 5) {
       startInstagramFeedObserver();
     }
+    if (currentHandling === 6) {
+      startTiktokFeedObserver();
+    }
   }
 }).observe(document, {subtree: true, childList: true});
 
 // ===== Instagram Feed Observer =====
 if (currentHandling === 5) {
   startInstagramFeedObserver();
+} else if (currentHandling === 6) {
+  startTiktokFeedObserver();
 }
 
 async function startInstagramFeedObserver() {
@@ -401,6 +413,35 @@ async function startInstagramFeedObserver() {
       attributeFilter: ['style']
     });
   }
+}
+
+async function startTiktokFeedObserver() {
+  console.log('[Content] Setting up TikTok feed observer');
+  
+  let columnListContainer;
+  while (!columnListContainer) {
+    columnListContainer = document.querySelector('#column-list-container');
+    if (!columnListContainer) {
+      await new Promise(resolve => setTimeout(resolve, 100)); // Small delay before retrying
+    }
+  }
+  
+  console.log('[Content] Found TikTok column-list-container');
+  
+  tiktokFeedObserver = new MutationObserver(async () => {
+    const currentTime = Date.now();
+    if (currentTime - lastDetectionTime < DETECTION_COOLDOWN) return;
+    console.log('[Content] TikTok scroll detected');
+    await checkForVideo();
+  });
+  
+  tiktokFeedObserver.observe(columnListContainer, {
+    childList: true,      // Watch for article changes
+  });
+
+  // Do initial video check
+  videoDetectionAttempts = 0;
+  setTimeout(checkForVideo, 200);
 }
 
 // ===== Export for Testing =====
