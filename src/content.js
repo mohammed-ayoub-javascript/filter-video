@@ -27,6 +27,7 @@ let currentHandling = isVideoPlayerURL(location.href); // Store current handling
 let currentResetKey = null;
 let equivalentResetKey = null;
 let tiktokFeedObserver = null;  // Add this with other state variables
+let monitoringInterval = null;
 
 // ===== Initialization =====
 // Get initial extension state and shortcut key
@@ -193,6 +194,20 @@ function checkForVideo() {
       chrome.runtime.sendMessage({ type: 'VIDEO_DETECTED' });
     });
     
+    // Set up continuous monitoring to keep the video element valid
+    if (!monitoringInterval) {
+      console.log('[Content] Setting up continuous video monitoring');
+      monitoringInterval = setInterval(() => {
+        // If video element no longer valid, restart detection
+        if (!document.contains(videoElement)) {
+          console.log('[Content] Video element no longer in DOM, restarting detection');
+          videoElement = null;
+          videoDetectionAttempts = 0;
+          checkForVideo();
+        }
+      }, 5000); // Check every 5 seconds
+    }
+    
     videoCheckRunning = false;
     return true;
   }
@@ -204,6 +219,16 @@ function checkForVideo() {
     setTimeout(checkForVideo, 1000);
   } else {
     console.log('[Content] Max detection attempts reached');
+    
+    // Even after MAX_ATTEMPTS, set up a fallback monitoring interval
+    // to catch videos that appear later
+    if (!monitoringInterval) {
+      console.log('[Content] Setting up fallback monitoring after MAX_ATTEMPTS');
+      monitoringInterval = setInterval(() => {
+        videoDetectionAttempts = 0;
+        checkForVideo();
+      }, 10000); // Check every 10 seconds
+    }
   }
 }
 
@@ -341,6 +366,8 @@ chrome.runtime.onMessage.addListener((message) => {
     if (!message.enabled) {
       // Clean up when disabled
       videoElement = null;
+      cleanupMonitoring();
+      
       if (currentKeydownHandler) {
         console.log('[Content] Quick reset - temporarily removing filter toggle');
         document.removeEventListener('keydown', currentKeydownHandler);
@@ -369,6 +396,10 @@ new MutationObserver(() => {
   if (currentUrl !== lastUrl) {
     console.log('[Content] URL changed from:', lastUrl, 'to:', currentUrl);
     lastUrl = currentUrl;
+    
+    // Clean up monitoring on URL change
+    cleanupMonitoring();
+    
     const newHandling = isVideoPlayerURL(currentUrl);
     
     if (newHandling !== currentHandling) currentHandling = newHandling;
@@ -442,6 +473,15 @@ async function startTiktokFeedObserver() {
   // Do initial video check
   videoDetectionAttempts = 0;
   setTimeout(checkForVideo, 200);
+}
+
+// Add cleanup when URL changes or when extension is disabled
+function cleanupMonitoring() {
+  if (monitoringInterval) {
+    console.log('[Content] Cleaning up video monitoring');
+    clearInterval(monitoringInterval);
+    monitoringInterval = null;
+  }
 }
 
 // ===== Export for Testing =====
