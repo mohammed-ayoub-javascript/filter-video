@@ -189,6 +189,4 @@ We do not:
 - 
 
 ### It has been contributed by
-<a href="https://github.com/mohammed-ayoub-javascript"> 
-<img src="https://avatars.githubusercontent.com/u/113200512?v=4"/>
-</a>
+<p align="center"> <a href="https://github.com/mohammed-ayoub-javascript"> <img src="https://avatars.githubusercontent.com/u/113200512?v=4" width="100" height="100" style="border-radius: 50%;" alt="Mohammed Ayoub GitHub"/> <br/> <b>Mohammed Ayoub</b> </a> </p>
